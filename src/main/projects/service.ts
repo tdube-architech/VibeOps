@@ -61,7 +61,8 @@ export class ProjectsService {
       category: input.category?.trim() || null,
       status: input.status ?? 'active',
       tags: input.tags ?? [],
-      repoUrl: input.repoUrl?.trim() || null
+      repoUrl: input.repoUrl?.trim() || null,
+      workspaceId: input.workspaceId ?? 'ws_local'
     });
   }
 

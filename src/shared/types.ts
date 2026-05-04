@@ -20,6 +20,21 @@ export interface Project {
   updatedAt: string;
   lastScannedAt: string | null;
   lastAuditedAt: string | null;
+  workspaceId: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkspaceInput {
+  name: string;
+  description?: string;
 }
 
 export interface AppInfo {
@@ -36,6 +51,7 @@ export interface ProjectInput {
   status?: ProjectStatus;
   tags?: string[];
   repoUrl?: string;
+  workspaceId?: string;
 }
 
 export interface ProjectPatch {
@@ -60,6 +76,7 @@ export interface ProjectListQuery {
   status?: ProjectStatus | 'all';
   sort?: ProjectListSort;
   includeArchived?: boolean;
+  workspaceId?: string;
 }
 
 export type ScanStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled';
@@ -278,4 +295,5 @@ export interface AppSettings {
     shellCommandMode: 'disabled' | 'approval' | 'trusted';
     allowAiCloudCalls: boolean;
   };
+  workspaces: { activeWorkspaceId: string };
 }

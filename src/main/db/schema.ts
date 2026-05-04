@@ -15,11 +15,23 @@ export const projects = sqliteTable('projects', {
   createdAt: text('created_at').notNull().default(sql`(CURRENT_TIMESTAMP)`),
   updatedAt: text('updated_at').notNull().default(sql`(CURRENT_TIMESTAMP)`),
   lastScannedAt: text('last_scanned_at'),
-  lastAuditedAt: text('last_audited_at')
+  lastAuditedAt: text('last_audited_at'),
+  workspaceId: text('workspace_id')
 });
 
 export type ProjectRow = typeof projects.$inferSelect;
 export type NewProjectRow = typeof projects.$inferInsert;
+
+export const workspaces = sqliteTable('workspaces', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  description: text('description'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull()
+});
+
+export type WorkspaceRow = typeof workspaces.$inferSelect;
 
 export const projectScans = sqliteTable('project_scans', {
   id: text('id').primaryKey(),

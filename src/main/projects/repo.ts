@@ -19,6 +19,7 @@ interface InsertParams {
   tags?: string[];
   repoUrl?: string | null;
   primaryStack?: string | null;
+  workspaceId?: string;
 }
 
 function rowToProject(row: ProjectRow): Project {
@@ -43,7 +44,8 @@ function rowToProject(row: ProjectRow): Project {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     lastScannedAt: row.lastScannedAt,
-    lastAuditedAt: row.lastAuditedAt
+    lastAuditedAt: row.lastAuditedAt,
+    workspaceId: row.workspaceId ?? 'ws_local'
   };
 }
 
@@ -66,7 +68,8 @@ export class ProjectsRepo {
       createdAt: now,
       updatedAt: now,
       lastScannedAt: null,
-      lastAuditedAt: null
+      lastAuditedAt: null,
+      workspaceId: params.workspaceId ?? 'ws_local'
     }).run();
     const row = this.byId(params.id);
     if (!row) throw new Error('insert succeeded but row missing');
@@ -92,6 +95,7 @@ export class ProjectsRepo {
     const conditions = [];
     if (!q.includeArchived) conditions.push(ne(projects.status, 'archived'));
     if (q.status && q.status !== 'all') conditions.push(eq(projects.status, q.status));
+    if (q.workspaceId) conditions.push(eq(projects.workspaceId, q.workspaceId));
     if (q.search && q.search.trim().length > 0) {
       const pat = `%${q.search.trim().toLowerCase()}%`;
       conditions.push(or(like(projects.name, pat), like(projects.localPath, pat))!);

@@ -29,7 +29,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     vsCode: null, cursor: null, claudeCode: null, codex: null,
     openCode: null, windowsTerminal: null, git: null
   },
-  security: { shellCommandMode: 'disabled', allowAiCloudCalls: true }
+  security: { shellCommandMode: 'disabled', allowAiCloudCalls: true },
+  workspaces: { activeWorkspaceId: 'ws_local' }
 };
 
 function mergeDeep<T>(base: T, override: Partial<T>): T {
