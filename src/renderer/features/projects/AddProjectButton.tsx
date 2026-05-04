@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useAddProject } from './useProjects';
 import { DuplicatePathDialog } from './DuplicatePathDialog';
 import type { Project, ProjectInput } from '@shared/types';
@@ -65,9 +66,14 @@ export function AddProjectButton() {
     if (!form.name.trim()) return setError('Name is required.');
     if (!form.localPath.trim()) return setError('Pick a folder.');
     try {
-      await addMut.mutateAsync({ input: buildInput(), allowDuplicate });
+      const project = await addMut.mutateAsync({ input: buildInput(), allowDuplicate });
       setOpen(false);
       reset();
+      toast.success(`Added ${project.name}`, 'Auto-pipeline starting…');
+      void api.pipeline.run(project.id, {}).catch((e) => {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast.error('Failed to start auto-pipeline', msg);
+      });
     } catch (err) {
       const e = err as Error & { code?: string; meta?: { existing?: Project } };
       if (e.code === 'DUPLICATE_PATH' && e.meta?.existing) {

@@ -21,3 +21,5 @@ export { registerDataHandlers, registerUpdateHandlers } from './data-handlers';
 export { registerWorkspaceHandlers } from './workspace-handlers';
 export { registerChatHandlers } from './chat-handlers';
 export { registerTaskHandlers } from './task-handlers';
+export { registerPipelineHandlers } from './pipeline-handlers';
+export { registerRulePackHandlers } from './rule-pack-handlers';

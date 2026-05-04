@@ -158,6 +158,13 @@ export type FileType =
   | 'test'
   | 'unknown';
 
+export interface GitStatus {
+  isRepo: boolean;
+  branch: string | null;
+  remoteUrl: string | null;
+  dirty: boolean | null;
+}
+
 export interface DetectionResult {
   projectType: string | null;
   packageManager: string | null;
@@ -166,6 +173,7 @@ export interface DetectionResult {
   auth: string | null;
   deployment: string | null;
   primaryStack: string | null;
+  git?: GitStatus;
 }
 
 export interface ScanWarning {

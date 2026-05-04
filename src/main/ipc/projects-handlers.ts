@@ -5,8 +5,10 @@ import type {
   Project,
   ProjectInput,
   ProjectListQuery,
-  ProjectPatch
+  ProjectPatch,
+  GitStatus
 } from '@shared/types';
+import { detectGit } from '@main/scanner/detectors/git';
 import { ProjectsService, DuplicatePathError, InvalidPathError } from '@main/projects/service';
 
 export interface ProjectsContext {
@@ -86,5 +88,13 @@ export function registerProjectsHandlers(ctx: ProjectsContext): void {
 
   ipcMain.handle(IpcChannels.projectsCheckPath, (_e, p: string): Result<Project | null> => {
     try { return ok(ctx.service.pathExists(p)); } catch (e) { return fail(e); }
+  });
+
+  ipcMain.handle(IpcChannels.projectsGitStatus, (_e, projectId: string): Result<GitStatus> => {
+    try {
+      const project = ctx.service.byId(projectId);
+      if (!project) throw new Error('project not found');
+      return ok(detectGit(project.localPath));
+    } catch (e) { return fail(e); }
   });
 }

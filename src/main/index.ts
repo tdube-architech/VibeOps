@@ -14,7 +14,9 @@ import {
   registerUpdateHandlers,
   registerWorkspaceHandlers,
   registerChatHandlers,
-  registerTaskHandlers
+  registerTaskHandlers,
+  registerPipelineHandlers,
+  registerRulePackHandlers
 } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
@@ -31,6 +33,7 @@ import { ProviderRegistry } from './ai/registry';
 import { AuditsRepo } from './audit/repo';
 import { BackupService } from './backup/service';
 import { setupUpdater, updaterApi } from './update/updater';
+import { startRulePackUpdateScheduler } from './audit/rule-pack/updater';
 import { WorkspacesRepo } from './workspaces/repo';
 import { WorkspacesService } from './workspaces/service';
 import { ChatRepo } from './chat/repo';
@@ -112,7 +115,8 @@ async function bootstrap(): Promise<void> {
   });
   registerAuditHandlers({
     auditsRepo, scansRepo, projectsService,
-    registry: aiRegistry, logger: log
+    registry: aiRegistry, logger: log,
+    appDataRoot: paths.root
   });
   registerDataHandlers({
     backup, db: handle.db, dbHandle: handle,
@@ -124,9 +128,32 @@ async function bootstrap(): Promise<void> {
   registerWorkspaceHandlers(workspacesService, settingsService);
   registerChatHandlers(chatService, log);
   registerTaskHandlers(tasksService);
+  registerPipelineHandlers({
+    projectsService,
+    scansRepo,
+    auditsRepo,
+    memoryService,
+    registry: aiRegistry,
+    logger: log,
+    getMainWindow: () => mainWindow,
+    appDataRoot: paths.root
+  });
+  registerRulePackHandlers({ appDataRoot: paths.root, logger: log });
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });
+
+  startRulePackUpdateScheduler({
+    appDataRoot: paths.root,
+    logger: log,
+    onResult: (result) => {
+      const win = mainWindow;
+      if (!win || win.isDestroyed()) return;
+      if (result.status === 'updated' || result.status === 'error') {
+        win.webContents.send('rulePack:state', result);
+      }
+    }
+  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

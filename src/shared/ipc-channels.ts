@@ -76,7 +76,15 @@ export const IpcChannels = {
   taskCreate: 'task:create',
   taskCreateFromFinding: 'task:createFromFinding',
   taskUpdate: 'task:update',
-  taskRemove: 'task:remove'
+  taskRemove: 'task:remove',
+
+  pipelineRun: 'pipeline:run',
+  pipelineProgress: 'pipeline:progress',
+  projectsGitStatus: 'projects:gitStatus',
+
+  rulePackInfo: 'rulePack:info',
+  rulePackCheckUpdate: 'rulePack:checkUpdate',
+  rulePackState: 'rulePack:state'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

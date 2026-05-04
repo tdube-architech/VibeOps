@@ -6,11 +6,15 @@ directories:
 files:
   - out/**/*
   - package.json
+  - "!tools/**/*"
+  - "!.github/**/*"
 asarUnpack:
   - "**/*.node"
 extraResources:
   - from: drizzle
     to: drizzle
+  - from: resources/rule-packs
+    to: rule-packs
 win:
   target:
     - target: nsis

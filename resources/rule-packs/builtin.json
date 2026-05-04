@@ -1,0 +1,803 @@
+{
+  "manifest": {
+    "schemaVersion": 1,
+    "packId": "vibeops-builtin",
+    "packVersion": "2026.05.04",
+    "publishedAt": "2026-05-04T00:00:00Z",
+    "description": "VibeOps built-in audit rules: OWASP-aligned vulnerability checks, vibe-code anti-patterns, and known-vulnerable npm packages.",
+    "source": "builtin",
+    "ruleCount": 51
+  },
+  "rules": [
+    {
+      "id": "sec-eval-call",
+      "severity": "high",
+      "category": "security",
+      "title": "Use of eval() in source",
+      "description": "eval() runs arbitrary code from a string. Classic injection sink.",
+      "recommendation": "Replace with JSON.parse, a function table, or a parser.",
+      "cwe": [
+        "CWE-95"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\beval\\s*\\(",
+        "scope": "source",
+        "pathExclude": "(test|spec|__tests__|node_modules|dist|build)"
+      }
+    },
+    {
+      "id": "sec-new-function",
+      "severity": "high",
+      "category": "security",
+      "title": "Dynamic Function() constructor",
+      "description": "new Function('...') is equivalent to eval and runs attacker-controlled code.",
+      "recommendation": "Refactor to a static function. Never pass untrusted input.",
+      "cwe": [
+        "CWE-95"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\bnew\\s+Function\\s*\\(",
+        "scope": "source",
+        "pathExclude": "(test|spec|node_modules|dist|build)"
+      }
+    },
+    {
+      "id": "sec-dangerously-set-inner-html",
+      "severity": "high",
+      "category": "security",
+      "title": "dangerouslySetInnerHTML usage",
+      "description": "Bypasses Reacts XSS protection. Risky if HTML originates from user input or untrusted API.",
+      "recommendation": "Render via JSX, or sanitize HTML with DOMPurify before inserting.",
+      "cwe": [
+        "CWE-79"
+      ],
+      "appliesTo": {
+        "frameworks": [
+          "React",
+          "Next.js"
+        ]
+      },
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "dangerouslySetInnerHTML",
+        "scope": "source",
+        "pathExclude": "(node_modules|dist|build)"
+      }
+    },
+    {
+      "id": "sec-document-write",
+      "severity": "medium",
+      "category": "security",
+      "title": "document.write() in source",
+      "description": "document.write injects HTML into the live DOM and is a common XSS vector.",
+      "recommendation": "Use createElement/textContent or framework rendering.",
+      "cwe": [
+        "CWE-79"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\bdocument\\.write\\s*\\(",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-inner-html-assignment",
+      "severity": "medium",
+      "category": "security",
+      "title": "Direct innerHTML assignment",
+      "description": "innerHTML with concatenated values is a classic XSS sink.",
+      "recommendation": "Use textContent for text, or sanitize HTML through DOMPurify.",
+      "cwe": [
+        "CWE-79"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\.innerHTML\\s*=\\s*[^;]+\\+",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-shell-template-literal",
+      "severity": "critical",
+      "category": "security",
+      "title": "Shell command built from template literal",
+      "description": "child_process.exec / execSync with a template literal is a command injection sink if any interpolated value is user-controlled.",
+      "recommendation": "Use execFile / spawn with an argv array. Never let user input become part of the shell string.",
+      "cwe": [
+        "CWE-78"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "(execSync|\\bexec)\\s*\\(\\s*`",
+        "scope": "source",
+        "pathExclude": "(test|spec|node_modules|dist|build)"
+      }
+    },
+    {
+      "id": "sec-shell-true",
+      "severity": "high",
+      "category": "security",
+      "title": "spawn() called with shell:true",
+      "description": "shell:true reintroduces shell parsing and command-injection risk.",
+      "recommendation": "Drop shell:true and pass arguments as an array.",
+      "cwe": [
+        "CWE-78"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "shell\\s*:\\s*true",
+        "scope": "source",
+        "pathExclude": "(test|spec|node_modules|dist|build)"
+      }
+    },
+    {
+      "id": "sec-sql-string-concat",
+      "severity": "high",
+      "category": "security",
+      "title": "Possible SQL string concatenation",
+      "description": "Building SQL by concatenating user-supplied values is the canonical SQL-injection pattern.",
+      "recommendation": "Use parameterized queries (?, $1) or a query builder that escapes values.",
+      "cwe": [
+        "CWE-89"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "(SELECT|INSERT|UPDATE|DELETE)[^;`]{0,80}\\$\\{",
+        "flags": "i",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-md5-hash",
+      "severity": "medium",
+      "category": "security",
+      "title": "MD5 used for hashing",
+      "description": "MD5 is cryptographically broken and unsuitable for password hashing or signature verification.",
+      "recommendation": "Use SHA-256 for digests, bcrypt/argon2/scrypt for passwords, HMAC-SHA256 for message auth.",
+      "cwe": [
+        "CWE-327"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "createHash\\(\\s*['\"]md5['\"]\\s*\\)",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-sha1-hash",
+      "severity": "medium",
+      "category": "security",
+      "title": "SHA-1 used for hashing",
+      "description": "SHA-1 is deprecated for cryptographic use due to collision attacks.",
+      "recommendation": "Switch to SHA-256 or SHA-3.",
+      "cwe": [
+        "CWE-327"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "createHash\\(\\s*['\"]sha1['\"]\\s*\\)",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-math-random-token",
+      "severity": "high",
+      "category": "security",
+      "title": "Math.random() near token/secret/password",
+      "description": "Math.random() is not cryptographically secure. Tokens generated this way are predictable.",
+      "recommendation": "Use crypto.randomUUID() or crypto.randomBytes() for security-sensitive randomness.",
+      "cwe": [
+        "CWE-338"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "(token|secret|password|session)[^\\n]{0,80}Math\\.random",
+        "flags": "i",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-jwt-none-alg",
+      "severity": "critical",
+      "category": "security",
+      "title": "JWT none algorithm allowed",
+      "description": "alg:'none' lets attackers forge tokens without a signature.",
+      "recommendation": "Pin the algorithm (HS256/RS256) on verification and reject 'none'.",
+      "cwe": [
+        "CWE-347"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "algorithm[s]?\\s*:\\s*['\"]none['\"]",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-cors-wildcard",
+      "severity": "high",
+      "category": "security",
+      "title": "CORS Access-Control-Allow-Origin wildcard",
+      "description": "Wildcard CORS combined with credentialed requests exposes authenticated APIs to any origin.",
+      "recommendation": "List allowed origins explicitly. Never combine wildcard with credentials.",
+      "cwe": [
+        "CWE-942"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "Access-Control-Allow-Origin['\"\\s,:]+\\*",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-cors-origin-true",
+      "severity": "medium",
+      "category": "security",
+      "title": "Express CORS configured with origin:true",
+      "description": "origin:true reflects any callers Origin and effectively allows all origins.",
+      "recommendation": "Pass an explicit origin allow-list or a function checking against one.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "cors\\s*\\(\\s*\\{[^}]*origin\\s*:\\s*true",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-tls-reject-unauthorized",
+      "severity": "high",
+      "category": "security",
+      "title": "TLS certificate verification disabled",
+      "description": "rejectUnauthorized:false disables certificate validation, allowing trivial MITM attacks.",
+      "recommendation": "Remove the flag, install correct CA certs, or pin via ca option.",
+      "cwe": [
+        "CWE-295"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "rejectUnauthorized\\s*:\\s*false",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-node-tls-insecure-env",
+      "severity": "high",
+      "category": "security",
+      "title": "NODE_TLS_REJECT_UNAUTHORIZED=0",
+      "description": "Globally disables TLS verification across the Node process.",
+      "recommendation": "Remove the override, fix the underlying cert chain.",
+      "cwe": [
+        "CWE-295"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "NODE_TLS_REJECT_UNAUTHORIZED\\s*=\\s*['\"]?0",
+        "scope": "all"
+      }
+    },
+    {
+      "id": "sec-private-key-in-source",
+      "severity": "critical",
+      "category": "security",
+      "title": "Private key block in source file",
+      "description": "PEM-encoded private key found in source. Anyone with repo access has the key.",
+      "recommendation": "Rotate immediately. Move keys to a secret store. Audit git history.",
+      "cwe": [
+        "CWE-798"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----",
+        "scope": "all",
+        "pathExclude": "(node_modules|test|spec|fixtures)"
+      }
+    },
+    {
+      "id": "sec-aws-access-key",
+      "severity": "critical",
+      "category": "security",
+      "title": "Hardcoded AWS access key id",
+      "description": "AKIA/ASIA-prefixed strings match AWS credential format.",
+      "recommendation": "Rotate IAM credentials, remove from source, store in env/secret manager, audit CloudTrail.",
+      "cwe": [
+        "CWE-798"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\b(AKIA|ASIA)[A-Z0-9]{16}\\b",
+        "scope": "all",
+        "pathExclude": "(node_modules|fixtures)"
+      }
+    },
+    {
+      "id": "sec-stripe-live-key",
+      "severity": "critical",
+      "category": "security",
+      "title": "Hardcoded Stripe live secret key",
+      "description": "sk_live_ keys are production Stripe credentials granting full account access.",
+      "recommendation": "Rotate immediately in Stripe dashboard. Move to env vars. Audit usage.",
+      "cwe": [
+        "CWE-798"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\bsk_live_[A-Za-z0-9]{20,}",
+        "scope": "all"
+      }
+    },
+    {
+      "id": "sec-google-api-key",
+      "severity": "high",
+      "category": "security",
+      "title": "Hardcoded Google API key",
+      "description": "AIza-prefixed Google API keys checked into code can incur billing or grant data access.",
+      "recommendation": "Restrict by HTTP referrer/IP, rotate, move to env vars.",
+      "cwe": [
+        "CWE-798"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\\bAIza[0-9A-Za-z\\-_]{35}\\b",
+        "scope": "all"
+      }
+    },
+    {
+      "id": "sec-slack-webhook",
+      "severity": "high",
+      "category": "security",
+      "title": "Hardcoded Slack webhook URL",
+      "description": "Slack incoming webhook URLs are bearer credentials.",
+      "recommendation": "Rotate the webhook in Slack, store in env var, restrict to server-only code.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "https://hooks\\.slack\\.com/services/T[A-Z0-9]{6,}/B[A-Z0-9]{6,}/[A-Za-z0-9]{20,}",
+        "scope": "all"
+      }
+    },
+    {
+      "id": "sec-supabase-service-role-client",
+      "severity": "critical",
+      "category": "security",
+      "title": "Supabase service-role key in client-side code",
+      "description": "SUPABASE_SERVICE_ROLE_KEY bypasses RLS. Referencing in client-bundled code exposes full DB access.",
+      "recommendation": "Restrict to server routes / edge functions. Use anon key in client code.",
+      "appliesTo": {
+        "frameworks": [
+          "Next.js",
+          "Vite",
+          "Remix",
+          "Nuxt"
+        ]
+      },
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "SUPABASE_SERVICE_ROLE",
+        "scope": "source",
+        "pathInclude": "(components|app/(?!api)|pages/(?!api)|src/client|src/components)"
+      }
+    },
+    {
+      "id": "sec-localstorage-token",
+      "severity": "medium",
+      "category": "security",
+      "title": "Auth token stored in localStorage",
+      "description": "Tokens in localStorage are accessible to any script (including XSS payloads).",
+      "recommendation": "Store auth tokens in HttpOnly Secure cookies; use SameSite=Lax/Strict.",
+      "cwe": [
+        "CWE-922"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "localStorage\\.setItem\\s*\\(\\s*['\"][^'\"]*(token|jwt|auth|session)",
+        "flags": "i",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-open-redirect-param",
+      "severity": "medium",
+      "category": "security",
+      "title": "Possible open redirect from query parameter",
+      "description": "Redirecting to a URL from query params without an allow-list lets attackers craft phishing links.",
+      "recommendation": "Validate redirect targets against an allow-list of paths or hosts.",
+      "cwe": [
+        "CWE-601"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "res\\.redirect\\s*\\(\\s*req\\.(query|params|body)",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-prototype-pollution-merge",
+      "severity": "high",
+      "category": "security",
+      "title": "Object merge from untrusted body",
+      "description": "Merging user JSON into an empty object without cleaning __proto__/constructor allows prototype pollution.",
+      "recommendation": "Use Object.create(null), or schema-validate (zod/yup) before merge.",
+      "cwe": [
+        "CWE-1321"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "Object\\.assign\\s*\\(\\s*\\{\\s*\\}\\s*,\\s*req\\.(body|query)",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-disabled-csrf",
+      "severity": "high",
+      "category": "security",
+      "title": "CSRF protection disabled",
+      "description": "Disabling csrf middleware on state-changing endpoints exposes the app to CSRF.",
+      "recommendation": "Re-enable CSRF tokens, or require same-origin + SameSite cookies + custom header.",
+      "cwe": [
+        "CWE-352"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "csrf\\s*:\\s*false|csrfProtection\\s*=\\s*false",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-helmet-csp-disabled",
+      "severity": "medium",
+      "category": "security",
+      "title": "Helmet contentSecurityPolicy disabled",
+      "description": "Disabling CSP removes a major XSS mitigation.",
+      "recommendation": "Configure CSP with explicit script-src/style-src; use nonces or hashes.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "contentSecurityPolicy\\s*:\\s*false",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "sec-debug-true-prod",
+      "severity": "medium",
+      "category": "security",
+      "title": "DEBUG=True in committed env",
+      "description": "Production debug modes leak stack traces, env vars, and source paths.",
+      "recommendation": "Drive debug from environment, not committed config. Default to false.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "^(DEBUG|FLASK_DEBUG|DJANGO_DEBUG)\\s*=\\s*(True|true|1)\\b",
+        "flags": "m",
+        "scope": "env-secret"
+      }
+    },
+    {
+      "id": "sec-permissive-iam-star",
+      "severity": "high",
+      "category": "security",
+      "title": "IAM policy with wildcard Action and Resource",
+      "description": "Wildcard actions on wildcard resources grant admin-equivalent privilege.",
+      "recommendation": "Scope Action and Resource to the minimum required.",
+      "cwe": [
+        "CWE-732"
+      ],
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "\"Action\"\\s*:\\s*\"\\*\"[\\s\\S]{0,200}\"Resource\"\\s*:\\s*\"\\*\"",
+        "scope": "config"
+      }
+    },
+    {
+      "id": "sec-todo-fixme-security",
+      "severity": "low",
+      "category": "security",
+      "title": "Security-flagged TODO/FIXME left in code",
+      "description": "TODOs mentioning security/auth/token are common abandonment markers for unfinished hardening.",
+      "recommendation": "Convert to a tracked task and resolve, or delete if no longer relevant.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "(TODO|FIXME|XXX)[^\\n]{0,80}(security|auth|token|password|sanitize)",
+        "flags": "i",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "vibe-console-log-source",
+      "severity": "low",
+      "category": "vibe-code-quality",
+      "title": "console.log left in non-test source",
+      "description": "AI-generated debug prints frequently survive into committed code.",
+      "recommendation": "Remove or replace with a leveled logger (pino, winston).",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "console\\.log\\s*\\(",
+        "scope": "source",
+        "pathExclude": "(test|spec|__tests__|stories|examples)"
+      }
+    },
+    {
+      "id": "vibe-ts-ignore",
+      "severity": "low",
+      "category": "vibe-code-quality",
+      "title": "@ts-ignore directive present",
+      "description": "@ts-ignore disables type checking for the next line and tends to hide real bugs.",
+      "recommendation": "Replace with a typed assertion or fix the underlying type. Prefer @ts-expect-error.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "@ts-ignore",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "vibe-any-type",
+      "severity": "low",
+      "category": "vibe-code-quality",
+      "title": "Explicit any type",
+      "description": "Frequent any annotations defeat the point of TypeScript.",
+      "recommendation": "Replace with proper types, generics, or unknown plus a narrowing check.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": ":\\s*any\\b",
+        "scope": "source",
+        "pathExclude": "(node_modules|.d\\.ts$|test|spec)"
+      }
+    },
+    {
+      "id": "vibe-todo-marker",
+      "severity": "info",
+      "category": "vibe-code-quality",
+      "title": "Unfinished TODO/FIXME marker",
+      "description": "AI assistants often emit TODO placeholders for logic they did not implement.",
+      "recommendation": "Convert to a tracked task; delete if no longer relevant.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "//\\s*(TODO|FIXME|XXX)\\b",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "vibe-empty-catch",
+      "severity": "medium",
+      "category": "vibe-code-quality",
+      "title": "Empty catch block",
+      "description": "Swallowing errors silently is a top source of invisible production bugs.",
+      "recommendation": "At minimum log the error. Better: rethrow, surface to user, or handle a specific case.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "vibe-empty-finally",
+      "severity": "low",
+      "category": "vibe-code-quality",
+      "title": "Empty finally block",
+      "description": "Empty finally blocks are usually leftover scaffolding.",
+      "recommendation": "Delete the block, or add the cleanup it was meant to do.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "finally\\s*\\{\\s*\\}",
+        "scope": "source"
+      }
+    },
+    {
+      "id": "doc-no-readme",
+      "severity": "low",
+      "category": "documentation",
+      "title": "README.md missing",
+      "description": "No top-level README. Future maintainers and AI assistants lack onboarding context.",
+      "recommendation": "Add a README: what it does, how to run, env vars, deploy target.",
+      "matcher": {
+        "kind": "file-missing",
+        "path": "README.md"
+      }
+    },
+    {
+      "id": "doc-no-license",
+      "severity": "info",
+      "category": "documentation",
+      "title": "LICENSE file missing",
+      "description": "Without a license, default is all-rights-reserved; collaborators have no legal use right.",
+      "recommendation": "Add a LICENSE file (MIT, Apache-2.0, or proprietary).",
+      "matcher": {
+        "kind": "file-missing",
+        "path": "LICENSE"
+      }
+    },
+    {
+      "id": "deploy-no-gitignore",
+      "severity": "high",
+      "category": "deployment",
+      "title": ".gitignore missing",
+      "description": "Without .gitignore, .env secrets, build outputs, and node_modules can be committed.",
+      "recommendation": "Add .gitignore with: node_modules, .env*, dist, build, out, .DS_Store.",
+      "matcher": {
+        "kind": "file-missing",
+        "path": ".gitignore"
+      }
+    },
+    {
+      "id": "deploy-no-env-example",
+      "severity": "low",
+      "category": "deployment",
+      "title": ".env present but no .env.example",
+      "description": "Onboarding teammates need to know required env vars without seeing real values.",
+      "recommendation": "Create .env.example listing every required variable with placeholders.",
+      "matcher": {
+        "kind": "file-missing",
+        "path": ".env.example",
+        "requireSibling": ".env"
+      }
+    },
+    {
+      "id": "deploy-dockerfile-root-user",
+      "severity": "medium",
+      "category": "deployment",
+      "title": "Dockerfile runs as root",
+      "description": "Containers without USER directives run as root, increasing blast radius if compromised.",
+      "recommendation": "Add USER node before CMD. Set ownership on copied files.",
+      "matcher": {
+        "kind": "regex-content",
+        "pattern": "^FROM\\s+[\\s\\S]*$(?!.*USER\\s+)",
+        "flags": "m",
+        "scope": "config",
+        "pathInclude": "Dockerfile"
+      }
+    },
+    {
+      "id": "dep-eslint-deprecated",
+      "severity": "low",
+      "category": "dependency",
+      "title": "ESLint v8 has reached end-of-life",
+      "description": "ESLint 8.x stopped receiving security fixes. v9+ uses flat config.",
+      "recommendation": "Migrate to ESLint 9 with eslint.config.js flat config.",
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "eslint",
+        "vulnerableRange": "<9.0.0"
+      }
+    },
+    {
+      "id": "dep-axios-cve-2024-39338",
+      "severity": "high",
+      "category": "dependency",
+      "title": "Vulnerable axios version (SSRF + credential leak)",
+      "description": "axios <1.7.4 is vulnerable to SSRF and credential leakage via path traversal.",
+      "recommendation": "Upgrade to axios >=1.7.4.",
+      "cve": [
+        "CVE-2024-39338"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "axios",
+        "vulnerableRange": "<1.7.4"
+      }
+    },
+    {
+      "id": "dep-next-cache-poisoning",
+      "severity": "high",
+      "category": "dependency",
+      "title": "Next.js below cache poisoning fix",
+      "description": "Next.js <14.2.10 contains a cache-poisoning issue that can serve attacker content.",
+      "recommendation": "Upgrade to Next.js >=14.2.10 (or 15+).",
+      "cve": [
+        "CVE-2024-46982"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "next",
+        "vulnerableRange": "<14.2.10"
+      }
+    },
+    {
+      "id": "dep-express-body-parser",
+      "severity": "medium",
+      "category": "dependency",
+      "title": "Express below patched body parser",
+      "description": "Express 4.x before 4.20.0 ships a body-parser vulnerable to DoS via large bodies.",
+      "recommendation": "Upgrade Express to >=4.20.0 (or migrate to v5).",
+      "cve": [
+        "CVE-2024-45296"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "express",
+        "vulnerableRange": "<4.20.0"
+      }
+    },
+    {
+      "id": "dep-jsonwebtoken-legacy",
+      "severity": "high",
+      "category": "dependency",
+      "title": "jsonwebtoken <9 has known signature confusion",
+      "description": "jsonwebtoken 8.x is affected by signature confusion / weak verify defaults.",
+      "recommendation": "Upgrade to jsonwebtoken >=9.0.0 and pin algorithm explicitly on verify().",
+      "cve": [
+        "CVE-2022-23529"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "jsonwebtoken",
+        "vulnerableRange": "<9.0.0"
+      }
+    },
+    {
+      "id": "dep-lodash-prototype-pollution",
+      "severity": "high",
+      "category": "dependency",
+      "title": "lodash below prototype-pollution fix",
+      "description": "lodash <4.17.21 is vulnerable to prototype pollution.",
+      "recommendation": "Upgrade lodash to >=4.17.21.",
+      "cve": [
+        "CVE-2020-8203"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "lodash",
+        "vulnerableRange": "<4.17.21"
+      }
+    },
+    {
+      "id": "dep-tar-path-traversal",
+      "severity": "high",
+      "category": "dependency",
+      "title": "node-tar below path-traversal fix",
+      "description": "tar <6.2.1 is vulnerable to path traversal during extraction.",
+      "recommendation": "Upgrade tar to >=6.2.1.",
+      "cve": [
+        "CVE-2024-28863"
+      ],
+      "matcher": {
+        "kind": "package-version",
+        "ecosystem": "npm",
+        "packageName": "tar",
+        "vulnerableRange": "<6.2.1"
+      }
+    },
+    {
+      "id": "env-bare-secret-name",
+      "severity": "low",
+      "category": "security",
+      "title": "Generic SECRET-named env variable",
+      "description": "An env variable simply called SECRET / API_KEY is hard to audit.",
+      "recommendation": "Rename to a vendor-prefixed name describing its scope.",
+      "matcher": {
+        "kind": "env-var-name",
+        "pattern": "^(SECRET|API_KEY|TOKEN|PASSWORD)$"
+      }
+    },
+    {
+      "id": "config-strict-mode-off",
+      "severity": "medium",
+      "category": "vibe-code-quality",
+      "title": "tsconfig strict is disabled",
+      "description": "Without strict mode, TypeScript permits implicit any and lax null checks.",
+      "recommendation": "Enable strict:true in tsconfig.json compilerOptions; fix surfaced errors.",
+      "matcher": {
+        "kind": "json-path-equals",
+        "filePath": "tsconfig.json",
+        "jsonPath": "compilerOptions.strict",
+        "expected": false
+      }
+    },
+    {
+      "id": "config-private-package",
+      "severity": "low",
+      "category": "deployment",
+      "title": "package.json private not set",
+      "description": "Without private:true, an accidental npm publish can leak proprietary code.",
+      "recommendation": "Set private:true in package.json unless meant for publication.",
+      "matcher": {
+        "kind": "json-path-equals",
+        "filePath": "package.json",
+        "jsonPath": "private",
+        "expected": true,
+        "invert": true
+      }
+    }
+  ]
+}

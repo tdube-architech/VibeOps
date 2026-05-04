@@ -21,6 +21,7 @@ export interface AuditContext {
   projectsService: ProjectsService;
   registry: ProviderRegistry;
   logger: Logger;
+  appDataRoot: string;
 }
 
 export function registerAuditHandlers(ctx: AuditContext): void {
@@ -34,7 +35,8 @@ export function registerAuditHandlers(ctx: AuditContext): void {
           scansRepo: ctx.scansRepo,
           projectsService: ctx.projectsService,
           registry: ctx.registry,
-          logger: ctx.logger
+          logger: ctx.logger,
+          appDataRoot: ctx.appDataRoot
         }, args));
       } catch (e) { return fail(e); }
     }

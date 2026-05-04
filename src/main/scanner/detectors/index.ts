@@ -4,6 +4,7 @@ import { detectFrameworks } from './frameworks';
 import { detectDatabase } from './database';
 import { detectAuth } from './auth';
 import { detectDeployment } from './deployment';
+import { detectGit } from './git';
 
 export interface DetectorContext {
   rootDir: string;
@@ -17,6 +18,7 @@ export function detectAll(ctx: DetectorContext): DetectionResult {
   const database = detectDatabase(ctx);
   const auth = detectAuth(ctx);
   const deployment = detectDeployment(ctx);
+  const git = detectGit(ctx.rootDir);
 
   let primaryStack: string | null = null;
   if (frameworks.includes('Next.js')) primaryStack = 'Next.js + React';
@@ -28,5 +30,5 @@ export function detectAll(ctx: DetectorContext): DetectionResult {
   else if (frameworks.includes('Django')) primaryStack = 'Python · Django';
   else if (frameworks.length > 0) primaryStack = frameworks[0] ?? null;
 
-  return { projectType, packageManager, frameworks, database, auth, deployment, primaryStack };
+  return { projectType, packageManager, frameworks, database, auth, deployment, primaryStack, git };
 }

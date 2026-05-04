@@ -90,6 +90,10 @@ export class ProjectsService {
     this.repo.markScanned(id, new Date().toISOString());
   }
 
+  markAudited(id: string): void {
+    this.repo.markAudited(id, new Date().toISOString());
+  }
+
   setPrimaryStack(id: string, stack: string | null): void {
     this.repo.setPrimaryStack(id, stack);
   }

@@ -9,10 +9,13 @@ import type {
   BackupExportResult, DashboardSummary, UpdateState,
   Workspace, WorkspaceInput,
   ChatSession, ChatMessage,
-  Task, TaskInput, TaskListQuery, TaskPatch
+  Task, TaskInput, TaskListQuery, TaskPatch,
+  GitStatus
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
+import type { PipelineEvent, AutoPipelineOpts } from '@shared/pipeline-events';
+import type { RulePackManifest, RulePackUpdateResult, RulePackUpdateState } from '@shared/rule-pack';
 
 export interface IpcError { code: string; message: string; meta?: Record<string, unknown>; }
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: IpcError };
@@ -173,6 +176,32 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.taskUpdate, patch)),
     remove: (id: string): Promise<true> =>
       unwrap(ipcRenderer.invoke(IpcChannels.taskRemove, id))
+  },
+  pipeline: {
+    run: (projectId: string, opts: AutoPipelineOpts = {}): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.pipelineRun, { projectId, ...opts })),
+    onProgress: (cb: (e: PipelineEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: PipelineEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.pipelineProgress, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.pipelineProgress, handler);
+    }
+  },
+  projectsExtra: {
+    gitStatus: (projectId: string): Promise<GitStatus> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitStatus, projectId))
+  },
+  rulePack: {
+    info: (): Promise<RulePackManifest | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.rulePackInfo)),
+    state: (): Promise<RulePackUpdateState> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.rulePackState)),
+    checkUpdate: (): Promise<RulePackUpdateResult> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.rulePackCheckUpdate)),
+    onState: (cb: (r: RulePackUpdateResult) => void): (() => void) => {
+      const handler = (_e: unknown, r: RulePackUpdateResult) => cb(r);
+      ipcRenderer.on(IpcChannels.rulePackState, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.rulePackState, handler);
+    }
   }
 };
 

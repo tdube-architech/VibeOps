@@ -4,6 +4,7 @@ import { useSettings } from '@/features/settings/useSettings';
 import { DataManagementCard } from '@/features/data/DataManagementCard';
 import { LogsViewerCard } from '@/features/data/LogsViewerCard';
 import { UpdateCard } from '@/features/update/UpdateCard';
+import { RulePackCard } from '@/features/rule-pack/RulePackCard';
 import type { AIProviderId } from '@shared/types';
 
 const PROVIDERS: AIProviderId[] = ['anthropic', 'mock'];
@@ -33,6 +34,7 @@ export function SettingsRoute() {
         </CardContent>
       </Card>
 
+      <RulePackCard />
       <DataManagementCard />
       <UpdateCard />
       <LogsViewerCard />

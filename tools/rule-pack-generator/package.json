@@ -1,0 +1,25 @@
+{
+  "name": "@vibeops/rule-pack-generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Generates, signs, and publishes VibeOps audit rule packs.",
+  "bin": {
+    "vibeops-pack": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "gen:pack": "tsx src/index.ts",
+    "gen:keypair": "tsx src/keypair.ts",
+    "validate": "tsx src/validate-cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.92.0",
+    "tsx": "^4.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.3"
+  }
+}

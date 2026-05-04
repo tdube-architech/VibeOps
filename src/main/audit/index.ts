@@ -16,6 +16,8 @@ import { runAICompleteness } from './checkers/ai-completeness';
 import { makeFinding, type DraftFinding } from './findings';
 import { scoreFindings, riskLabel } from './scoring';
 import { buildSafePrompt } from './prompts';
+import { loadActiveRulePack } from './rule-pack/loader';
+import { runRulePack } from './rule-pack/engine';
 
 const newId = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16);
 
@@ -25,6 +27,7 @@ export interface AuditDeps {
   projectsService: ProjectsService;
   registry: ProviderRegistry;
   logger: Logger;
+  appDataRoot: string;
 }
 
 export interface RunAuditArgs {
@@ -65,6 +68,22 @@ export async function runAudit(deps: AuditDeps, args: RunAuditArgs): Promise<Aud
     drafts.push(...checkDependencies({ scan, files, envVars, readText, hasFile }));
     drafts.push(...checkDeployment({ scan, files, envVars, readText, hasFile }));
     drafts.push(...checkVibeCode({ files, readText }));
+
+    const rulePack = loadActiveRulePack({ appDataRoot: deps.appDataRoot, logger: deps.logger });
+    if (rulePack) {
+      const ruleResult = runRulePack(rulePack, { scan, files, envVars, readText, hasFile });
+      drafts.push(...ruleResult.findings);
+      deps.logger.info(
+        {
+          packId: ruleResult.packId,
+          packVersion: ruleResult.packVersion,
+          evaluated: ruleResult.rulesEvaluated,
+          matched: ruleResult.rulesMatched,
+          findings: ruleResult.findings.length
+        },
+        'rule pack audit complete'
+      );
+    }
 
     const staticFindings: AuditFinding[] = drafts.map((d) =>
       makeFinding({ auditRunId: id, projectId: project.id, createdAt: startedAt, ...d })
@@ -135,7 +154,7 @@ export async function runAudit(deps: AuditDeps, args: RunAuditArgs): Promise<Aud
       completedAt: new Date().toISOString()
     });
 
-    deps.projectsService.markScanned(project.id);
+    deps.projectsService.markAudited(project.id);
 
     const result = deps.auditsRepo.byId(id);
     if (!result) throw new Error('audit vanished after completion');

@@ -1,0 +1,60 @@
+name: Rule Pack Publish
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no publish)'
+        required: false
+        default: 'false'
+      no_ai:
+        description: 'Skip AI pattern generation'
+        required: false
+        default: 'false'
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install root deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Install generator deps
+        working-directory: tools/rule-pack-generator
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate rule pack
+        working-directory: tools/rule-pack-generator
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VIBEOPS_PACK_PRIVATE_KEY: ${{ secrets.VIBEOPS_PACK_PRIVATE_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          ARGS="--publish"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          if [ "${{ inputs.no_ai }}" = "true" ]; then ARGS="$ARGS --no-ai"; fi
+          pnpm gen:pack $ARGS
+
+      - name: Upload pack as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rule-pack-${{ github.run_number }}
+          path: tools/rule-pack-generator/packs-out/
+          retention-days: 30

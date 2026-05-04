@@ -145,6 +145,10 @@ export class ProjectsRepo {
     this.db.update(projects).set({ lastScannedAt: when, updatedAt: when }).where(eq(projects.id, id)).run();
   }
 
+  markAudited(id: string, when: string): void {
+    this.db.update(projects).set({ lastAuditedAt: when, updatedAt: when }).where(eq(projects.id, id)).run();
+  }
+
   setPrimaryStack(id: string, stack: string | null): void {
     this.db.update(projects).set({ primaryStack: stack, updatedAt: new Date().toISOString() }).where(eq(projects.id, id)).run();
   }
