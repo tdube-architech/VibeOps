@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
 import type { Project, ProjectInput, ProjectListQuery, ProjectPatch } from '@shared/types';
 
 const PROJECTS_KEY = ['projects'] as const;
 const projectKey = (id: string) => ['projects', id] as const;
 
 export function useProjectList(q: ProjectListQuery = {}) {
+  const wsId = useActiveWorkspaceId();
+  const merged: ProjectListQuery = { ...q, ...(wsId ? { workspaceId: wsId } : {}) };
   return useQuery({
-    queryKey: [...PROJECTS_KEY, 'list', q],
-    queryFn: () => api.projects.list(q)
+    queryKey: [...PROJECTS_KEY, 'list', merged],
+    queryFn: () => api.projects.list(merged)
   });
 }
 

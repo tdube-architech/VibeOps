@@ -11,7 +11,8 @@ import {
   registerAIHandlers,
   registerAuditHandlers,
   registerDataHandlers,
-  registerUpdateHandlers
+  registerUpdateHandlers,
+  registerWorkspaceHandlers
 } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
@@ -28,6 +29,8 @@ import { ProviderRegistry } from './ai/registry';
 import { AuditsRepo } from './audit/repo';
 import { BackupService } from './backup/service';
 import { setupUpdater, updaterApi } from './update/updater';
+import { WorkspacesRepo } from './workspaces/repo';
+import { WorkspacesService } from './workspaces/service';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -59,6 +62,8 @@ async function bootstrap(): Promise<void> {
   const aiRegistry = new ProviderRegistry(settingsService);
   const auditsRepo = new AuditsRepo(handle.db);
   const backup = new BackupService({ dbFile: paths.dbFile });
+  const workspacesRepo = new WorkspacesRepo(handle.db);
+  const workspacesService = new WorkspacesService(workspacesRepo);
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -102,6 +107,7 @@ async function bootstrap(): Promise<void> {
     projectsService, auditsRepo
   });
   registerUpdateHandlers(updaterApi);
+  registerWorkspaceHandlers(workspacesService, settingsService);
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });

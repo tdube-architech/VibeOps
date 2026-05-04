@@ -59,7 +59,17 @@ export const IpcChannels = {
   updateCheck: 'update:check',
   updateDownload: 'update:download',
   updateInstall: 'update:install',
-  updateState: 'update:state'
+  updateState: 'update:state',
+
+  workspaceList: 'workspace:list',
+  workspaceCreate: 'workspace:create',
+  workspaceRename: 'workspace:rename',
+  workspaceRemove: 'workspace:remove',
+  workspaceSetActive: 'workspace:setActive',
+
+  chatEnsureProjectSession: 'chat:ensureProjectSession',
+  chatHistory: 'chat:history',
+  chatSend: 'chat:send'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

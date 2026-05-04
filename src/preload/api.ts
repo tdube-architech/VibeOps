@@ -6,7 +6,8 @@ import type {
   Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource,
   AppSettings, AIProviderId,
   AuditRun, AuditFinding, GeneratedPrompt, AuditType,
-  BackupExportResult, DashboardSummary, UpdateState
+  BackupExportResult, DashboardSummary, UpdateState,
+  Workspace, WorkspaceInput
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -141,6 +142,13 @@ export const api = {
       ipcRenderer.on(IpcChannels.updateState, handler);
       return () => ipcRenderer.removeListener(IpcChannels.updateState, handler);
     }
+  },
+  workspaces: {
+    list: (): Promise<Workspace[]> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceList)),
+    create: (input: WorkspaceInput): Promise<Workspace> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceCreate, input)),
+    rename: (id: string, name: string): Promise<Workspace> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceRename, { id, name })),
+    remove: (id: string): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceRemove, id)),
+    setActive: (id: string): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceSetActive, id))
   }
 };
 

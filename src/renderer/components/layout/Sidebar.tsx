@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, FolderKanban, BookOpen, ShieldCheck, ListChecks, MessageSquare, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { UserFooter } from './UserFooter';
 
 type NavItem = {
   to: string;
@@ -21,11 +23,8 @@ const items: readonly NavItem[] = [
 
 export function Sidebar() {
   return (
-    <aside className="flex h-full w-56 flex-col border-r border-border bg-card/40 px-3 py-4">
-      <div className="mb-6 px-2">
-        <div className="text-base font-semibold tracking-tight">VibeOps</div>
-        <div className="text-xs text-muted-foreground">Project Intelligence</div>
-      </div>
+    <aside className="flex h-full w-60 flex-col gap-2 border-r border-border bg-card/40 p-3">
+      <WorkspaceSwitcher />
       <nav className="flex flex-col gap-1">
         {items.map(({ to, label, icon: Icon, end }) => (
           <NavLink
@@ -46,6 +45,7 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <UserFooter />
     </aside>
   );
 }
