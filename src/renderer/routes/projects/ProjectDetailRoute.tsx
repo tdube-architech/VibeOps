@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pencil, Archive, Trash2, RotateCcw } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useProject, useArchiveProject, useUnarchiveProject, useRemoveProject } from '@/features/projects/useProjects';
 import { EditProjectDialog } from '@/features/projects/EditProjectDialog';
 import { ProjectOverviewTab } from './ProjectOverviewTab';
+import { ProjectScanTab } from './ProjectScanTab';
 
 export function ProjectDetailRoute() {
   const { id } = useParams<{ id: string }>();
@@ -52,7 +54,18 @@ export function ProjectDetailRoute() {
           </Button>
         </div>
       </div>
-      <ProjectOverviewTab project={project} />
+
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="scan">Scan</TabsTrigger>
+          <TabsTrigger value="memory" disabled>Memory (Phase 3)</TabsTrigger>
+          <TabsTrigger value="audits" disabled>Audits (Phase 5)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview"><ProjectOverviewTab project={project} /></TabsContent>
+        <TabsContent value="scan"><ProjectScanTab project={project} /></TabsContent>
+      </Tabs>
+
       <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   );
