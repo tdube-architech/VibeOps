@@ -44,8 +44,10 @@ CREATE TABLE `project_scans` (
 	`error_message` text,
 	FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade
 );
-
+--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_project_files_scan_path
   ON project_files (project_id, scan_id, path);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_project_files_project ON project_files (project_id);
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS idx_project_scans_project ON project_scans (project_id);
