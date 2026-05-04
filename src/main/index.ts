@@ -1,7 +1,16 @@
 import { app, BrowserWindow, session } from 'electron';
+import path from 'node:path';
 import { customAlphabet } from 'nanoid';
 import { createMainWindow } from './window';
-import { registerCoreHandlers, registerProjectsHandlers, registerScannerHandlers, registerMemoryHandlers } from './ipc/handlers';
+import {
+  registerCoreHandlers,
+  registerProjectsHandlers,
+  registerScannerHandlers,
+  registerMemoryHandlers,
+  registerSettingsHandlers,
+  registerAIHandlers,
+  registerAuditHandlers
+} from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
@@ -11,6 +20,10 @@ import { ProjectsService } from './projects/service';
 import { ScansRepo } from './scanner/repo';
 import { MemoriesRepo } from './memory/repo';
 import { MemoryService } from './memory/service';
+import { SettingsService } from './settings/service';
+import { getSecretStore } from './settings/safe-storage';
+import { ProviderRegistry } from './ai/registry';
+import { AuditsRepo } from './audit/repo';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -34,6 +47,13 @@ async function bootstrap(): Promise<void> {
     memoriesRepo, projectsService, scansRepo,
     newId: () => `m_${memoryIdGen()}`
   });
+  const settingsService = new SettingsService({
+    settingsPath: path.join(paths.root, 'settings.json'),
+    secretsPath: path.join(paths.root, 'secrets.json'),
+    secretStore: getSecretStore()
+  });
+  const aiRegistry = new ProviderRegistry(settingsService);
+  const auditsRepo = new AuditsRepo(handle.db);
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -58,6 +78,17 @@ async function bootstrap(): Promise<void> {
     service: memoryService,
     logger: log,
     resolveProjectPath: (id) => projectsService.byId(id)?.localPath ?? null
+  });
+  registerSettingsHandlers(settingsService);
+  registerAIHandlers({
+    registry: aiRegistry,
+    projectsService,
+    scansRepo,
+    logger: log
+  });
+  registerAuditHandlers({
+    auditsRepo, scansRepo, projectsService,
+    registry: aiRegistry, logger: log
   });
 
   mainWindow = createMainWindow();

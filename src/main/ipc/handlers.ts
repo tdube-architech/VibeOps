@@ -16,3 +16,4 @@ export { registerScannerHandlers } from './scanner-handlers';
 export { registerMemoryHandlers } from './memory-handlers';
 export { registerSettingsHandlers } from './settings-handlers';
 export { registerAIHandlers } from './ai-handlers';
+export { registerAuditHandlers } from './audit-handlers';

@@ -4,7 +4,8 @@ import type {
   AppInfo, FolderPickResult, Project, ProjectInput, ProjectListQuery, ProjectPatch,
   Scan, ScanFile, ScanEnvVar,
   Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource,
-  AppSettings, AIProviderId
+  AppSettings, AIProviderId,
+  AuditRun, AuditFinding, GeneratedPrompt, AuditType
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -99,6 +100,28 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.aiTestConnection, providerId)),
     generateProjectSummary: (projectId: string): Promise<ProjectAnalysisResult> =>
       unwrap(ipcRenderer.invoke(IpcChannels.aiGenerateProjectSummary, projectId))
+  },
+  audits: {
+    start: (projectId: string, auditType?: AuditType): Promise<AuditRun> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditStart, { projectId, auditType })),
+    list: (projectId: string): Promise<AuditRun[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditList, projectId)),
+    get: (auditId: string): Promise<AuditRun | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditGet, auditId)),
+    latest: (projectId: string): Promise<AuditRun | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditLatest, projectId)),
+    findings: (auditRunId: string): Promise<AuditFinding[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditFindings, auditRunId)),
+    updateFinding: (id: string, status: AuditFinding['status']): Promise<AuditFinding | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditUpdateFinding, { id, status }))
+  },
+  prompts: {
+    list: (projectId: string): Promise<GeneratedPrompt[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.promptList, projectId)),
+    get: (id: string): Promise<GeneratedPrompt | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.promptGet, id)),
+    update: (id: string, patch: { status?: GeneratedPrompt['status']; outcomeNotes?: string | null; usedAt?: string | null }): Promise<GeneratedPrompt | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.promptUpdate, { id, ...patch }))
   }
 };
 

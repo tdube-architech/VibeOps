@@ -8,6 +8,7 @@ import { EditProjectDialog } from '@/features/projects/EditProjectDialog';
 import { ProjectOverviewTab } from './ProjectOverviewTab';
 import { ProjectScanTab } from './ProjectScanTab';
 import { ProjectMemoryTab } from './ProjectMemoryTab';
+import { ProjectAuditsTab } from './ProjectAuditsTab';
 
 export function ProjectDetailRoute() {
   const { id } = useParams<{ id: string }>();
@@ -61,11 +62,12 @@ export function ProjectDetailRoute() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="scan">Scan</TabsTrigger>
           <TabsTrigger value="memory">Memory</TabsTrigger>
-          <TabsTrigger value="audits" disabled>Audits (Phase 5)</TabsTrigger>
+          <TabsTrigger value="audits">Audits</TabsTrigger>
         </TabsList>
         <TabsContent value="overview"><ProjectOverviewTab project={project} /></TabsContent>
         <TabsContent value="scan"><ProjectScanTab project={project} /></TabsContent>
         <TabsContent value="memory"><ProjectMemoryTab project={project} /></TabsContent>
+        <TabsContent value="audits"><ProjectAuditsTab project={project} /></TabsContent>
       </Tabs>
 
       <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />
