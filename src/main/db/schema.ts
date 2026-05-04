@@ -66,3 +66,16 @@ export const projectEnvVars = sqliteTable('project_env_vars', {
 export type ProjectScanRow = typeof projectScans.$inferSelect;
 export type ProjectFileRow = typeof projectFiles.$inferSelect;
 export type ProjectEnvVarRow = typeof projectEnvVars.$inferSelect;
+
+export const projectMemories = sqliteTable('project_memories', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull(),
+  content: text('content').notNull(),
+  source: text('source').notNull(),
+  fileWritten: integer('file_written', { mode: 'boolean' }).notNull().default(false),
+  scanId: text('scan_id'),
+  createdAt: text('created_at').notNull()
+});
+
+export type ProjectMemoryRow = typeof projectMemories.$inferSelect;

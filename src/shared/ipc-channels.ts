@@ -19,7 +19,17 @@ export const IpcChannels = {
   scanLatest: 'scan:latest',
   scanFiles: 'scan:files',
   scanEnvVars: 'scan:envVars',
-  scanProgress: 'scan:progress'
+  scanProgress: 'scan:progress',
+
+  memoryGenerateDraft: 'memory:generateDraft',
+  memoryListVersions: 'memory:listVersions',
+  memoryGetVersion: 'memory:getVersion',
+  memoryGetLatest: 'memory:getLatest',
+  memorySaveDraft: 'memory:saveDraft',
+  memoryWriteFile: 'memory:writeFile',
+  memoryFileStatus: 'memory:fileStatus',
+  memoryReadFile: 'memory:readFile',
+  memoryOpenInEditor: 'memory:openInEditor'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

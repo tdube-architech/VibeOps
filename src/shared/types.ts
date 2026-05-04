@@ -122,3 +122,38 @@ export interface ScanEnvVar {
   required: boolean;
   comment: string | null;
 }
+
+export type MemorySource = 'generated' | 'merged' | 'user-edited' | 'imported';
+
+export interface Memory {
+  id: string;
+  projectId: string;
+  version: number;
+  content: string;
+  source: MemorySource;
+  fileWritten: boolean;
+  scanId: string | null;
+  createdAt: string;
+}
+
+export interface MemoryDraft {
+  projectId: string;
+  content: string;
+  source: MemorySource;
+  scanId: string | null;
+}
+
+export type MemoryWriteMode = 'create' | 'replace' | 'merge';
+
+export interface MemoryWriteResult {
+  memory: Memory;
+  filePath: string;
+  backupPath: string | null;
+}
+
+export interface MemoryFileStatus {
+  exists: boolean;
+  filePath: string;
+  sizeBytes: number | null;
+  modifiedAt: string | null;
+}
