@@ -1,17 +1,13 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddProjectButton } from '@/features/projects/AddProjectButton';
 import { ProjectTable } from '@/features/projects/ProjectTable';
-import { useProjectList } from '@/features/projects/useProjects';
+import { StatCards } from '@/features/dashboard/StatCards';
+import { RecentFindingsPanel } from '@/features/dashboard/RecentFindingsPanel';
+import { HighestRiskPanel } from '@/features/dashboard/HighestRiskPanel';
+import { useDashboardSummary } from '@/features/dashboard/useDashboard';
 
 export function DashboardRoute() {
-  const { data: projects = [] } = useProjectList({ includeArchived: true });
-  const stats = [
-    { label: 'Total Projects', value: projects.length },
-    { label: 'Active', value: projects.filter((p) => p.status === 'active').length },
-    { label: 'Archived', value: projects.filter((p) => p.status === 'archived').length },
-    { label: 'Critical', value: projects.filter((p) => p.status === 'critical').length }
-  ];
-
+  const { data: summary, isLoading } = useDashboardSummary();
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -21,21 +17,20 @@ export function DashboardRoute() {
         </div>
         <AddProjectButton />
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <Card key={s.label}>
-            <CardHeader className="pb-2">
-              <CardDescription>{s.label}</CardDescription>
-              <CardTitle className="text-3xl">{s.value}</CardTitle>
-            </CardHeader>
-            <CardContent />
+      <StatCards summary={summary} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader><CardTitle>Project Workspace</CardTitle></CardHeader>
+            <CardContent><ProjectTable /></CardContent>
           </Card>
-        ))}
+        </div>
+        <div className="space-y-4">
+          <HighestRiskPanel summary={summary} />
+          <RecentFindingsPanel summary={summary} />
+        </div>
       </div>
-      <Card>
-        <CardHeader><CardTitle>Project Workspace</CardTitle></CardHeader>
-        <CardContent><ProjectTable /></CardContent>
-      </Card>
+      {isLoading && <div className="text-xs text-muted-foreground">Loading dashboard…</div>}
     </div>
   );
 }
