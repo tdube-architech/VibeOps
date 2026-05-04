@@ -163,6 +163,68 @@ export interface MemoryFileStatus {
   modifiedAt: string | null;
 }
 
+export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type FindingCategory =
+  | 'architecture'
+  | 'security'
+  | 'dependency'
+  | 'product-completeness'
+  | 'vibe-code-quality'
+  | 'deployment'
+  | 'documentation';
+export type AuditStatus = 'queued' | 'running' | 'completed' | 'failed';
+export type AuditType = 'full' | 'security-only' | 'dependency-only' | 'architecture-only';
+export type RiskLevel = 'Strong' | 'Good' | 'Needs Work' | 'Risky' | 'Critical';
+
+export interface AuditFinding {
+  id: string;
+  auditRunId: string;
+  projectId: string;
+  severity: FindingSeverity;
+  category: FindingCategory;
+  title: string;
+  description: string | null;
+  filePath: string | null;
+  lineStart: number | null;
+  lineEnd: number | null;
+  recommendation: string | null;
+  suggestedPrompt: string | null;
+  status: 'open' | 'wont-fix' | 'fixed' | 'ignored';
+  createdAt: string;
+}
+
+export interface AuditRun {
+  id: string;
+  projectId: string;
+  scanId: string | null;
+  auditType: AuditType;
+  provider: string | null;
+  model: string | null;
+  status: AuditStatus;
+  score: number | null;
+  riskLevel: RiskLevel | null;
+  summary: string | null;
+  recommendedNextAction: string | null;
+  generatedPromptId: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  errorMessage: string | null;
+  findings: AuditFinding[];
+}
+
+export interface GeneratedPrompt {
+  id: string;
+  projectId: string;
+  auditRunId: string | null;
+  title: string;
+  promptType: string;
+  content: string;
+  status: 'unused' | 'used' | 'archived';
+  outcomeNotes: string | null;
+  createdAt: string;
+  usedAt: string | null;
+}
+
 export interface AppSettings {
   schemaVersion: 1;
   appearance: { theme: 'dark' | 'light' };

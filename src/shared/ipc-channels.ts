@@ -37,7 +37,17 @@ export const IpcChannels = {
   settingsClearApiKey: 'settings:clearApiKey',
 
   aiTestConnection: 'ai:testConnection',
-  aiGenerateProjectSummary: 'ai:generateProjectSummary'
+  aiGenerateProjectSummary: 'ai:generateProjectSummary',
+
+  auditStart: 'audit:start',
+  auditList: 'audit:list',
+  auditGet: 'audit:get',
+  auditLatest: 'audit:latest',
+  auditFindings: 'audit:findings',
+  auditUpdateFinding: 'audit:updateFinding',
+  promptList: 'prompt:list',
+  promptGet: 'prompt:get',
+  promptUpdate: 'prompt:update'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

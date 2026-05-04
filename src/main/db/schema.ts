@@ -79,3 +79,55 @@ export const projectMemories = sqliteTable('project_memories', {
 });
 
 export type ProjectMemoryRow = typeof projectMemories.$inferSelect;
+
+export const auditRuns = sqliteTable('audit_runs', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  scanId: text('scan_id'),
+  auditType: text('audit_type').notNull(),
+  provider: text('provider'),
+  model: text('model'),
+  status: text('status').notNull(),
+  score: integer('score'),
+  riskLevel: text('risk_level'),
+  summary: text('summary'),
+  recommendedNextAction: text('recommended_next_action'),
+  generatedPromptId: text('generated_prompt_id'),
+  startedAt: text('started_at').notNull(),
+  completedAt: text('completed_at'),
+  errorMessage: text('error_message')
+});
+
+export const auditFindings = sqliteTable('audit_findings', {
+  id: text('id').primaryKey(),
+  auditRunId: text('audit_run_id').notNull().references(() => auditRuns.id, { onDelete: 'cascade' }),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  severity: text('severity').notNull(),
+  category: text('category').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  filePath: text('file_path'),
+  lineStart: integer('line_start'),
+  lineEnd: integer('line_end'),
+  recommendation: text('recommendation'),
+  suggestedPrompt: text('suggested_prompt'),
+  status: text('status').notNull().default('open'),
+  createdAt: text('created_at').notNull()
+});
+
+export const generatedPrompts = sqliteTable('generated_prompts', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  auditRunId: text('audit_run_id'),
+  title: text('title').notNull(),
+  promptType: text('prompt_type').notNull(),
+  content: text('content').notNull(),
+  status: text('status').notNull().default('unused'),
+  outcomeNotes: text('outcome_notes'),
+  createdAt: text('created_at').notNull(),
+  usedAt: text('used_at')
+});
+
+export type AuditRunRow = typeof auditRuns.$inferSelect;
+export type AuditFindingRow = typeof auditFindings.$inferSelect;
+export type GeneratedPromptRow = typeof generatedPrompts.$inferSelect;
