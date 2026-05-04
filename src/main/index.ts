@@ -1,10 +1,12 @@
 import { app, BrowserWindow, session } from 'electron';
 import { createMainWindow } from './window';
-import { registerCoreHandlers } from './ipc';
+import { registerCoreHandlers, registerProjectsHandlers } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
 import { getLogger } from './logger';
+import { ProjectsRepo } from './projects/repo';
+import { ProjectsService } from './projects/service';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -19,6 +21,9 @@ async function bootstrap(): Promise<void> {
   runMigrations(handle);
   log.info('database migrated');
 
+  const projectsRepo = new ProjectsRepo(handle.db);
+  const projectsService = new ProjectsService(projectsRepo);
+
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
       responseHeaders: {
@@ -31,6 +36,11 @@ async function bootstrap(): Promise<void> {
   });
 
   registerCoreHandlers();
+  registerProjectsHandlers({
+    service: projectsService,
+    getMainWindow: () => mainWindow
+  });
+
   mainWindow = createMainWindow();
 
   app.on('window-all-closed', () => {

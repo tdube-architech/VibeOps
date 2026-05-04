@@ -10,3 +10,5 @@ export function registerCoreHandlers(): void {
     platform: process.platform
   }));
 }
+
+export { registerProjectsHandlers } from './projects-handlers';
