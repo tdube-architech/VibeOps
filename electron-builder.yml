@@ -1,0 +1,25 @@
+appId: com.vibeops.app
+productName: VibeOps
+directories:
+  buildResources: build
+  output: release
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - "**/*.node"
+extraResources:
+  - from: drizzle
+    to: drizzle
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: VibeOps
+publish: null
