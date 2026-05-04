@@ -10,7 +10,16 @@ export const IpcChannels = {
   projectsUnarchive: 'projects:unarchive',
   projectsRemove: 'projects:remove',
   projectsPickFolder: 'projects:pickFolder',
-  projectsCheckPath: 'projects:checkPath'
+  projectsCheckPath: 'projects:checkPath',
+
+  scanStart: 'scan:start',
+  scanCancel: 'scan:cancel',
+  scanGet: 'scan:get',
+  scanList: 'scan:list',
+  scanLatest: 'scan:latest',
+  scanFiles: 'scan:files',
+  scanEnvVars: 'scan:envVars',
+  scanProgress: 'scan:progress'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];
