@@ -1,3 +1,8 @@
+import type {
+  AIProviderId, AIModel, AIProviderConfig, AICallTrace
+} from './ai';
+export type { AIProviderId, AIModel, AIProviderConfig, AICallTrace };
+
 export type ProjectStatus = 'active' | 'planning' | 'needs_cleanup' | 'critical' | 'archived';
 
 export interface Project {
@@ -156,4 +161,27 @@ export interface MemoryFileStatus {
   filePath: string;
   sizeBytes: number | null;
   modifiedAt: string | null;
+}
+
+export interface AppSettings {
+  schemaVersion: 1;
+  appearance: { theme: 'dark' | 'light' };
+  scanner: { extraIgnore: string[] };
+  ai: {
+    activeProviderId: AIProviderId | null;
+    providers: Record<AIProviderId, AIProviderConfig>;
+  };
+  externalTools: {
+    vsCode: string | null;
+    cursor: string | null;
+    claudeCode: string | null;
+    codex: string | null;
+    openCode: string | null;
+    windowsTerminal: string | null;
+    git: string | null;
+  };
+  security: {
+    shellCommandMode: 'disabled' | 'approval' | 'trusted';
+    allowAiCloudCalls: boolean;
+  };
 }
