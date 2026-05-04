@@ -61,8 +61,10 @@ export function registerProjectsHandlers(ctx: ProjectsContext): void {
   ipcMain.handle(
     IpcChannels.projectsAdd,
     (_e, payload: { input: ProjectInput; allowDuplicate?: boolean }): Result<Project> => {
-      try { return ok(ctx.service.add(payload.input, { allowDuplicate: payload.allowDuplicate })); }
-      catch (e) { return fail(e); }
+      try {
+        const opts = payload.allowDuplicate ? { allowDuplicate: true } : {};
+        return ok(ctx.service.add(payload.input, opts));
+      } catch (e) { return fail(e); }
     }
   );
 
