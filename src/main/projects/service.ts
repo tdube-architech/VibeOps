@@ -84,4 +84,12 @@ export class ProjectsService {
   pathExists(localPath: string): Project | null {
     return this.repo.byPath(path.resolve(localPath));
   }
+
+  markScanned(id: string): void {
+    this.repo.markScanned(id, new Date().toISOString());
+  }
+
+  setPrimaryStack(id: string, stack: string | null): void {
+    this.repo.setPrimaryStack(id, stack);
+  }
 }
