@@ -12,7 +12,8 @@ import {
   registerAuditHandlers,
   registerDataHandlers,
   registerUpdateHandlers,
-  registerWorkspaceHandlers
+  registerWorkspaceHandlers,
+  registerChatHandlers
 } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
@@ -31,6 +32,8 @@ import { BackupService } from './backup/service';
 import { setupUpdater, updaterApi } from './update/updater';
 import { WorkspacesRepo } from './workspaces/repo';
 import { WorkspacesService } from './workspaces/service';
+import { ChatRepo } from './chat/repo';
+import { ChatService } from './chat/service';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -64,6 +67,12 @@ async function bootstrap(): Promise<void> {
   const backup = new BackupService({ dbFile: paths.dbFile });
   const workspacesRepo = new WorkspacesRepo(handle.db);
   const workspacesService = new WorkspacesService(workspacesRepo);
+  const chatRepo = new ChatRepo(handle.db);
+  const chatService = new ChatService({
+    chatRepo, registry: aiRegistry,
+    projectsService, scansRepo, memoryService,
+    logger: log
+  });
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -108,6 +117,7 @@ async function bootstrap(): Promise<void> {
   });
   registerUpdateHandlers(updaterApi);
   registerWorkspaceHandlers(workspacesService, settingsService);
+  registerChatHandlers(chatService, log);
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });

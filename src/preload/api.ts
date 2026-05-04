@@ -7,7 +7,8 @@ import type {
   AppSettings, AIProviderId,
   AuditRun, AuditFinding, GeneratedPrompt, AuditType,
   BackupExportResult, DashboardSummary, UpdateState,
-  Workspace, WorkspaceInput
+  Workspace, WorkspaceInput,
+  ChatSession, ChatMessage
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -149,6 +150,14 @@ export const api = {
     rename: (id: string, name: string): Promise<Workspace> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceRename, { id, name })),
     remove: (id: string): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceRemove, id)),
     setActive: (id: string): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.workspaceSetActive, id))
+  },
+  chat: {
+    ensureProjectSession: (projectId: string): Promise<ChatSession> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.chatEnsureProjectSession, projectId)),
+    history: (sessionId: string): Promise<ChatMessage[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.chatHistory, sessionId)),
+    send: (sessionId: string, userText: string): Promise<{ user: ChatMessage; assistant: ChatMessage }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.chatSend, { sessionId, userText }))
   }
 };
 

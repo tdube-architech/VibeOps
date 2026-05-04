@@ -19,3 +19,4 @@ export { registerAIHandlers } from './ai-handlers';
 export { registerAuditHandlers } from './audit-handlers';
 export { registerDataHandlers, registerUpdateHandlers } from './data-handlers';
 export { registerWorkspaceHandlers } from './workspace-handlers';
+export { registerChatHandlers } from './chat-handlers';

@@ -143,3 +143,27 @@ export const generatedPrompts = sqliteTable('generated_prompts', {
 export type AuditRunRow = typeof auditRuns.$inferSelect;
 export type AuditFindingRow = typeof auditFindings.$inferSelect;
 export type GeneratedPromptRow = typeof generatedPrompts.$inferSelect;
+
+export const aiSessions = sqliteTable('ai_sessions', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  workspaceId: text('workspace_id'),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  purpose: text('purpose').notNull(),
+  title: text('title'),
+  createdAt: text('created_at').notNull()
+});
+
+export const aiMessages = sqliteTable('ai_messages', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').notNull().references(() => aiSessions.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(),
+  content: text('content').notNull(),
+  inputTokens: integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  createdAt: text('created_at').notNull()
+});
+
+export type AiSessionRow = typeof aiSessions.$inferSelect;
+export type AiMessageRow = typeof aiMessages.$inferSelect;

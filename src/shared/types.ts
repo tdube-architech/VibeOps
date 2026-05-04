@@ -37,6 +37,29 @@ export interface WorkspaceInput {
   description?: string;
 }
 
+export type ChatRole = 'user' | 'assistant' | 'system';
+
+export interface ChatSession {
+  id: string;
+  projectId: string | null;
+  workspaceId: string | null;
+  provider: string;
+  model: string;
+  purpose: 'project-chat' | 'general';
+  title: string | null;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  sessionId: string;
+  role: ChatRole;
+  content: string;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  createdAt: string;
+}
+
 export interface AppInfo {
   version: string;
   electronVersion: string;
