@@ -22,3 +22,37 @@ export interface AppInfo {
   electronVersion: string;
   platform: NodeJS.Platform;
 }
+
+export interface ProjectInput {
+  name: string;
+  localPath: string;
+  description?: string;
+  category?: string;
+  status?: ProjectStatus;
+  tags?: string[];
+  repoUrl?: string;
+}
+
+export interface ProjectPatch {
+  id: string;
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+  status?: ProjectStatus;
+  tags?: string[];
+  repoUrl?: string | null;
+}
+
+export interface FolderPickResult {
+  canceled: boolean;
+  path: string | null;
+}
+
+export type ProjectListSort = 'recent' | 'name' | 'lastScanned';
+
+export interface ProjectListQuery {
+  search?: string;
+  status?: ProjectStatus | 'all';
+  sort?: ProjectListSort;
+  includeArchived?: boolean;
+}
