@@ -1,4 +1,5 @@
-import { autoUpdater } from 'electron-updater';
+import electronUpdater from 'electron-updater';
+const { autoUpdater } = electronUpdater;
 import type { Logger } from 'pino';
 import { BrowserWindow, app } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';

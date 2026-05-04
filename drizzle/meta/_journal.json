@@ -43,6 +43,13 @@
       "when": 1777915098140,
       "tag": "0005_curvy_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1777916895701,
+      "tag": "0006_needy_micromacro",
+      "breakpoints": true
     }
   ]
 }

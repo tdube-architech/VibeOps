@@ -1,7 +1,10 @@
+import { ListPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { AuditFinding } from '@shared/types';
 import { useUpdateFinding } from './useAudits';
+import { useCreateTaskFromFinding } from '@/features/tasks/useTasks';
+import { toast } from '@/lib/toast';
 
 const SEV_BADGE: Record<AuditFinding['severity'], 'default' | 'secondary' | 'warning' | 'destructive' | 'outline' | 'success'> = {
   critical: 'destructive',
@@ -13,6 +16,7 @@ const SEV_BADGE: Record<AuditFinding['severity'], 'default' | 'secondary' | 'war
 
 export function FindingsTable({ findings }: { findings: AuditFinding[] }) {
   const update = useUpdateFinding();
+  const createTask = useCreateTaskFromFinding();
   if (findings.length === 0) {
     return <div className="text-sm text-muted-foreground">No findings yet.</div>;
   }
@@ -39,6 +43,16 @@ export function FindingsTable({ findings }: { findings: AuditFinding[] }) {
               )}
             </div>
             <div className="flex flex-col gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => createTask.mutate(f.id, {
+                  onSuccess: () => toast.success('Task created from finding'),
+                  onError: (e) => toast.error('Failed', (e as Error).message)
+                })}
+              >
+                <ListPlus className="h-4 w-4" /> Create task
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'fixed' })}>Mark fixed</Button>
               <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'ignored' })}>Ignore</Button>
             </div>

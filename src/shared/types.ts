@@ -37,6 +37,49 @@ export interface WorkspaceInput {
   description?: string;
 }
 
+export type TaskPriority = 'critical' | 'high' | 'medium' | 'low';
+export type TaskStatus = 'backlog' | 'next' | 'in_progress' | 'blocked' | 'done' | 'ignored';
+
+export interface Task {
+  id: string;
+  projectId: string;
+  sourceFindingId: string | null;
+  title: string;
+  description: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  relatedFiles: string[];
+  suggestedPrompt: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface TaskInput {
+  projectId: string;
+  title: string;
+  description?: string;
+  priority?: TaskPriority;
+  relatedFiles?: string[];
+  suggestedPrompt?: string;
+  sourceFindingId?: string;
+}
+
+export interface TaskPatch {
+  id: string;
+  title?: string;
+  description?: string | null;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  relatedFiles?: string[];
+  suggestedPrompt?: string | null;
+}
+
+export interface TaskListQuery {
+  projectId?: string;
+  status?: TaskStatus | 'all';
+  priority?: TaskPriority | 'all';
+}
+
 export type ChatRole = 'user' | 'assistant' | 'system';
 
 export interface ChatSession {

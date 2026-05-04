@@ -167,3 +167,19 @@ export const aiMessages = sqliteTable('ai_messages', {
 
 export type AiSessionRow = typeof aiSessions.$inferSelect;
 export type AiMessageRow = typeof aiMessages.$inferSelect;
+
+export const projectTasks = sqliteTable('project_tasks', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
+  sourceFindingId: text('source_finding_id'),
+  title: text('title').notNull(),
+  description: text('description'),
+  priority: text('priority').notNull().default('medium'),
+  status: text('status').notNull().default('backlog'),
+  relatedFiles: text('related_files').notNull().default('[]'),
+  suggestedPrompt: text('suggested_prompt'),
+  createdAt: text('created_at').notNull(),
+  completedAt: text('completed_at')
+});
+
+export type ProjectTaskRow = typeof projectTasks.$inferSelect;

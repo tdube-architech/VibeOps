@@ -20,3 +20,4 @@ export { registerAuditHandlers } from './audit-handlers';
 export { registerDataHandlers, registerUpdateHandlers } from './data-handlers';
 export { registerWorkspaceHandlers } from './workspace-handlers';
 export { registerChatHandlers } from './chat-handlers';
+export { registerTaskHandlers } from './task-handlers';

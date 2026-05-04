@@ -69,7 +69,14 @@ export const IpcChannels = {
 
   chatEnsureProjectSession: 'chat:ensureProjectSession',
   chatHistory: 'chat:history',
-  chatSend: 'chat:send'
+  chatSend: 'chat:send',
+
+  taskList: 'task:list',
+  taskGet: 'task:get',
+  taskCreate: 'task:create',
+  taskCreateFromFinding: 'task:createFromFinding',
+  taskUpdate: 'task:update',
+  taskRemove: 'task:remove'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

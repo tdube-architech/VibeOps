@@ -166,6 +166,11 @@ export class AuditsRepo {
     return rows.map(rowToFinding);
   }
 
+  findingById(id: string): AuditFinding | null {
+    const row = this.db.select().from(auditFindings).where(eq(auditFindings.id, id)).get();
+    return row ? rowToFinding(row) : null;
+  }
+
   updateFindingStatus(id: string, status: AuditFinding['status']): AuditFinding | null {
     this.db.update(auditFindings).set({ status }).where(eq(auditFindings.id, id)).run();
     const row = this.db.select().from(auditFindings).where(eq(auditFindings.id, id)).get();

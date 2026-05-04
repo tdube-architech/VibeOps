@@ -8,7 +8,8 @@ import type {
   AuditRun, AuditFinding, GeneratedPrompt, AuditType,
   BackupExportResult, DashboardSummary, UpdateState,
   Workspace, WorkspaceInput,
-  ChatSession, ChatMessage
+  ChatSession, ChatMessage,
+  Task, TaskInput, TaskListQuery, TaskPatch
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -158,6 +159,20 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.chatHistory, sessionId)),
     send: (sessionId: string, userText: string): Promise<{ user: ChatMessage; assistant: ChatMessage }> =>
       unwrap(ipcRenderer.invoke(IpcChannels.chatSend, { sessionId, userText }))
+  },
+  tasks: {
+    list: (q: TaskListQuery = {}): Promise<Task[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskList, q)),
+    get: (id: string): Promise<Task | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskGet, id)),
+    create: (input: TaskInput): Promise<Task> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskCreate, input)),
+    createFromFinding: (findingId: string): Promise<Task> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskCreateFromFinding, findingId)),
+    update: (patch: TaskPatch): Promise<Task> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskUpdate, patch)),
+    remove: (id: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.taskRemove, id))
   }
 };
 
