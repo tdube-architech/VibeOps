@@ -14,3 +14,5 @@ export function registerCoreHandlers(): void {
 export { registerProjectsHandlers } from './projects-handlers';
 export { registerScannerHandlers } from './scanner-handlers';
 export { registerMemoryHandlers } from './memory-handlers';
+export { registerSettingsHandlers } from './settings-handlers';
+export { registerAIHandlers } from './ai-handlers';

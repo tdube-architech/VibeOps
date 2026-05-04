@@ -29,7 +29,15 @@ export const IpcChannels = {
   memoryWriteFile: 'memory:writeFile',
   memoryFileStatus: 'memory:fileStatus',
   memoryReadFile: 'memory:readFile',
-  memoryOpenInEditor: 'memory:openInEditor'
+  memoryOpenInEditor: 'memory:openInEditor',
+
+  settingsRead: 'settings:read',
+  settingsUpdate: 'settings:update',
+  settingsSetApiKey: 'settings:setApiKey',
+  settingsClearApiKey: 'settings:clearApiKey',
+
+  aiTestConnection: 'ai:testConnection',
+  aiGenerateProjectSummary: 'ai:generateProjectSummary'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

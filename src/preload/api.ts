@@ -3,8 +3,10 @@ import { IpcChannels } from '@shared/ipc-channels';
 import type {
   AppInfo, FolderPickResult, Project, ProjectInput, ProjectListQuery, ProjectPatch,
   Scan, ScanFile, ScanEnvVar,
-  Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource
+  Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource,
+  AppSettings, AIProviderId
 } from '@shared/types';
+import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
 
 export interface IpcError { code: string; message: string; meta?: Record<string, unknown>; }
@@ -82,6 +84,21 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.memoryReadFile, projectId)),
     openInEditor: (projectId: string): Promise<true> =>
       unwrap(ipcRenderer.invoke(IpcChannels.memoryOpenInEditor, projectId))
+  },
+  settings: {
+    read: (): Promise<AppSettings> => unwrap(ipcRenderer.invoke(IpcChannels.settingsRead)),
+    update: (patch: Partial<AppSettings>): Promise<AppSettings> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.settingsUpdate, patch)),
+    setApiKey: (providerId: AIProviderId, apiKey: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.settingsSetApiKey, { providerId, apiKey })),
+    clearApiKey: (providerId: AIProviderId): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.settingsClearApiKey, providerId))
+  },
+  ai: {
+    testConnection: (providerId: AIProviderId): Promise<AITestConnectionResult> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiTestConnection, providerId)),
+    generateProjectSummary: (projectId: string): Promise<ProjectAnalysisResult> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiGenerateProjectSummary, projectId))
   }
 };
 
