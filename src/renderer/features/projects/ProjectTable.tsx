@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { useProjectList } from './useProjects';
+import { useSelectedProjectId, useSetSelectedProject } from './selectedProject';
+import { cn } from '@/lib/utils';
 import type { Project } from '@shared/types';
 
 function fmtDate(iso: string | null): string {
@@ -44,6 +46,8 @@ interface Props {
 export function ProjectTable({ includeArchived = false }: Props) {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const setSelected = useSetSelectedProject();
+  const selectedId = useSelectedProjectId();
   const { data: projects = [], isLoading } = useProjectList({
     ...(search ? { search } : {}),
     includeArchived
@@ -90,8 +94,11 @@ export function ProjectTable({ includeArchived = false }: Props) {
               table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-t border-border hover:bg-secondary/40 cursor-pointer"
-                  onClick={() => navigate(`/projects/${row.original.id}`)}
+                  className={cn(
+                    'border-t border-border hover:bg-secondary/40 cursor-pointer',
+                    row.original.id === selectedId && 'bg-secondary/60'
+                  )}
+                  onClick={() => setSelected(row.original.id)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-3 py-2 align-middle">
