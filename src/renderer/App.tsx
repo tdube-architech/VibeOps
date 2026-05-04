@@ -2,6 +2,7 @@ import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { ProjectsRoute } from '@/routes/ProjectsRoute';
+import { ProjectDetailRoute } from '@/routes/projects/ProjectDetailRoute';
 import { MemoryRoute } from '@/routes/MemoryRoute';
 import { AuditsRoute } from '@/routes/AuditsRoute';
 import { TasksRoute } from '@/routes/TasksRoute';
@@ -15,6 +16,7 @@ const router = createHashRouter([
     children: [
       { index: true, element: <DashboardRoute /> },
       { path: 'projects', element: <ProjectsRoute /> },
+      { path: 'projects/:id', element: <ProjectDetailRoute /> },
       { path: 'memory', element: <MemoryRoute /> },
       { path: 'audits', element: <AuditsRoute /> },
       { path: 'tasks', element: <TasksRoute /> },
