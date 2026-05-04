@@ -1,6 +1,7 @@
 import { app, BrowserWindow, session } from 'electron';
+import { customAlphabet } from 'nanoid';
 import { createMainWindow } from './window';
-import { registerCoreHandlers, registerProjectsHandlers, registerScannerHandlers } from './ipc/handlers';
+import { registerCoreHandlers, registerProjectsHandlers, registerScannerHandlers, registerMemoryHandlers } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
@@ -8,6 +9,8 @@ import { getLogger } from './logger';
 import { ProjectsRepo } from './projects/repo';
 import { ProjectsService } from './projects/service';
 import { ScansRepo } from './scanner/repo';
+import { MemoriesRepo } from './memory/repo';
+import { MemoryService } from './memory/service';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -25,6 +28,12 @@ async function bootstrap(): Promise<void> {
   const projectsRepo = new ProjectsRepo(handle.db);
   const projectsService = new ProjectsService(projectsRepo);
   const scansRepo = new ScansRepo(handle.db);
+  const memoriesRepo = new MemoriesRepo(handle.db);
+  const memoryIdGen = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 16);
+  const memoryService = new MemoryService({
+    memoriesRepo, projectsService, scansRepo,
+    newId: () => `m_${memoryIdGen()}`
+  });
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -44,6 +53,11 @@ async function bootstrap(): Promise<void> {
     projectsService,
     logger: log,
     getMainWindow: () => mainWindow
+  });
+  registerMemoryHandlers({
+    service: memoryService,
+    logger: log,
+    resolveProjectPath: (id) => projectsService.byId(id)?.localPath ?? null
   });
 
   mainWindow = createMainWindow();

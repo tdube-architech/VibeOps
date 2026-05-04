@@ -2,7 +2,8 @@ import { ipcRenderer } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';
 import type {
   AppInfo, FolderPickResult, Project, ProjectInput, ProjectListQuery, ProjectPatch,
-  Scan, ScanFile, ScanEnvVar
+  Scan, ScanFile, ScanEnvVar,
+  Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource
 } from '@shared/types';
 import type { ScanProgressEvent } from '@shared/scan-events';
 
@@ -61,6 +62,26 @@ export const api = {
       ipcRenderer.on(IpcChannels.scanProgress, handler);
       return () => ipcRenderer.removeListener(IpcChannels.scanProgress, handler);
     }
+  },
+  memory: {
+    generateDraft: (projectId: string, mode: 'fresh' | 'merge-with-disk' | 'merge-with-version' = 'fresh', version?: number): Promise<MemoryDraft> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryGenerateDraft, { projectId, mode, version })),
+    listVersions: (projectId: string): Promise<Memory[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryListVersions, projectId)),
+    getLatest: (projectId: string): Promise<Memory | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryGetLatest, projectId)),
+    getVersion: (memoryId: string): Promise<Memory | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryGetVersion, memoryId)),
+    saveDraft: (projectId: string, content: string, source: MemorySource = 'user-edited'): Promise<Memory> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memorySaveDraft, { projectId, content, source })),
+    writeFile: (projectId: string, memoryId: string): Promise<MemoryWriteResult> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryWriteFile, { projectId, memoryId })),
+    fileStatus: (projectId: string): Promise<MemoryFileStatus> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryFileStatus, projectId)),
+    readFile: (projectId: string): Promise<string | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryReadFile, projectId)),
+    openInEditor: (projectId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryOpenInEditor, projectId))
   }
 };
 
