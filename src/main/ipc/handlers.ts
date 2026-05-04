@@ -12,3 +12,4 @@ export function registerCoreHandlers(): void {
 }
 
 export { registerProjectsHandlers } from './projects-handlers';
+export { registerScannerHandlers } from './scanner-handlers';

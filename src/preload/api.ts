@@ -1,19 +1,12 @@
 import { ipcRenderer } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';
 import type {
-  AppInfo,
-  FolderPickResult,
-  Project,
-  ProjectInput,
-  ProjectListQuery,
-  ProjectPatch
+  AppInfo, FolderPickResult, Project, ProjectInput, ProjectListQuery, ProjectPatch,
+  Scan, ScanFile, ScanEnvVar
 } from '@shared/types';
+import type { ScanProgressEvent } from '@shared/scan-events';
 
-export interface IpcError {
-  code: string;
-  message: string;
-  meta?: Record<string, unknown>;
-}
+export interface IpcError { code: string; message: string; meta?: Record<string, unknown>; }
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: IpcError };
 
 function unwrap<T>(p: Promise<IpcResult<T>>): Promise<T> {
@@ -47,6 +40,27 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.projectsRemove, id)),
     checkPath: (p: string): Promise<Project | null> =>
       unwrap(ipcRenderer.invoke(IpcChannels.projectsCheckPath, p))
+  },
+  scans: {
+    start: (projectId: string): Promise<Scan> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanStart, projectId)),
+    cancel: (scanId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanCancel, scanId)),
+    get: (scanId: string): Promise<Scan | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanGet, scanId)),
+    list: (projectId: string): Promise<Scan[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanList, projectId)),
+    latest: (projectId: string): Promise<Scan | null> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanLatest, projectId)),
+    files: (scanId: string): Promise<ScanFile[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanFiles, scanId)),
+    envVars: (scanId: string): Promise<ScanEnvVar[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanEnvVars, scanId)),
+    onProgress: (cb: (e: ScanProgressEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: ScanProgressEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.scanProgress, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.scanProgress, handler);
+    }
   }
 };
 

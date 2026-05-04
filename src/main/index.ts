@@ -1,12 +1,13 @@
 import { app, BrowserWindow, session } from 'electron';
 import { createMainWindow } from './window';
-import { registerCoreHandlers, registerProjectsHandlers } from './ipc/handlers';
+import { registerCoreHandlers, registerProjectsHandlers, registerScannerHandlers } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
 import { getLogger } from './logger';
 import { ProjectsRepo } from './projects/repo';
 import { ProjectsService } from './projects/service';
+import { ScansRepo } from './scanner/repo';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -23,6 +24,7 @@ async function bootstrap(): Promise<void> {
 
   const projectsRepo = new ProjectsRepo(handle.db);
   const projectsService = new ProjectsService(projectsRepo);
+  const scansRepo = new ScansRepo(handle.db);
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -36,8 +38,11 @@ async function bootstrap(): Promise<void> {
   });
 
   registerCoreHandlers();
-  registerProjectsHandlers({
-    service: projectsService,
+  registerProjectsHandlers({ service: projectsService, getMainWindow: () => mainWindow });
+  registerScannerHandlers({
+    scansRepo,
+    projectsService,
+    logger: log,
     getMainWindow: () => mainWindow
   });
 
