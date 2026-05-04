@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProjectStatusBadge } from '@/features/projects/ProjectStatusBadge';
+import { ProjectSummaryCard } from '@/features/projects/ProjectSummaryCard';
 import { useLatestScan } from '@/features/projects/useScans';
 import type { Project } from '@shared/types';
 
@@ -53,6 +54,7 @@ export function ProjectOverviewTab({ project }: { project: Project }) {
           )}
         </CardContent>
       </Card>
+      <ProjectSummaryCard projectId={project.id} />
     </div>
   );
 }
