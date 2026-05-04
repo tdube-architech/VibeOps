@@ -51,6 +51,25 @@ export const anthropicProviderFactory: ProviderFactory = {
         }
       },
 
+      async complete(args) {
+        const t0 = Date.now();
+        const c = client();
+        const resp = await c.messages.create({
+          model: args.model ?? defaultModel,
+          max_tokens: args.maxTokens ?? 1500,
+          temperature: args.temperature ?? 0.2,
+          system: args.system,
+          messages: [{ role: 'user', content: args.user }]
+        }, { signal: args.signal });
+        const text = resp.content.find((b) => b.type === 'text')?.text ?? '';
+        return {
+          text, model: resp.model,
+          inputTokens: resp.usage.input_tokens,
+          outputTokens: resp.usage.output_tokens,
+          durationMs: Date.now() - t0
+        };
+      },
+
       async analyzeProject(input: ProjectAnalysisInput, opts): Promise<ProjectAnalysisResult> {
         const trace = startTrace();
         const c = client();

@@ -24,6 +24,28 @@ export const mockProviderFactory: ProviderFactory = {
           recommendedNextActions: ['Run a deeper audit (Phase 5).'],
           trace: trace({ providerId: 'mock', model: 'mock' })
         };
+      },
+      async complete() {
+        return {
+          text: JSON.stringify({
+            additionalFindings: [{
+              severity: 'low',
+              category: 'product-completeness',
+              title: 'Mock incomplete: example feature',
+              description: 'Mock checker emitted a sample finding.',
+              filePath: null,
+              recommendation: 'Use a real provider for real findings.'
+            }],
+            recommendedNextAction: 'Configure a real AI provider in Settings.',
+            topPromptTitle: 'Configure provider',
+            topPromptType: 'prepare-deployment',
+            topPromptGoal: 'Set up Anthropic in VibeOps Settings and re-run the audit.'
+          }),
+          model: 'mock',
+          inputTokens: null,
+          outputTokens: null,
+          durationMs: 1
+        };
       }
     };
   }

@@ -7,6 +7,14 @@ export interface AIProvider {
   info(): AIProviderInfo;
   testConnection(args: { model?: AIModel; signal?: AbortSignal }): Promise<AITestConnectionResult>;
   analyzeProject(input: ProjectAnalysisInput, opts: { model?: AIModel; maxTokens?: number; temperature?: number; signal?: AbortSignal }): Promise<ProjectAnalysisResult>;
+  complete(args: {
+    system: string;
+    user: string;
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+    signal?: AbortSignal;
+  }): Promise<{ text: string; model: string; inputTokens: number | null; outputTokens: number | null; durationMs: number }>;
 }
 
 export interface ProviderFactory {
