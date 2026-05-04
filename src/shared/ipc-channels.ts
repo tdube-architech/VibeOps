@@ -47,7 +47,19 @@ export const IpcChannels = {
   auditUpdateFinding: 'audit:updateFinding',
   promptList: 'prompt:list',
   promptGet: 'prompt:get',
-  promptUpdate: 'prompt:update'
+  promptUpdate: 'prompt:update',
+
+  dataExportDb: 'data:exportDb',
+  dataImportDb: 'data:importDb',
+  dataResetApp: 'data:resetApp',
+  dataClearAuditHistory: 'data:clearAuditHistory',
+  dataTailLogs: 'data:tailLogs',
+  dashboardSummary: 'data:dashboardSummary',
+
+  updateCheck: 'update:check',
+  updateDownload: 'update:download',
+  updateInstall: 'update:install',
+  updateState: 'update:state'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

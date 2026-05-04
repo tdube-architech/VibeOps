@@ -9,7 +9,9 @@ import {
   registerMemoryHandlers,
   registerSettingsHandlers,
   registerAIHandlers,
-  registerAuditHandlers
+  registerAuditHandlers,
+  registerDataHandlers,
+  registerUpdateHandlers
 } from './ipc/handlers';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
@@ -24,6 +26,8 @@ import { SettingsService } from './settings/service';
 import { getSecretStore } from './settings/safe-storage';
 import { ProviderRegistry } from './ai/registry';
 import { AuditsRepo } from './audit/repo';
+import { BackupService } from './backup/service';
+import { setupUpdater, updaterApi } from './update/updater';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -54,6 +58,7 @@ async function bootstrap(): Promise<void> {
   });
   const aiRegistry = new ProviderRegistry(settingsService);
   const auditsRepo = new AuditsRepo(handle.db);
+  const backup = new BackupService({ dbFile: paths.dbFile });
 
   session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
     cb({
@@ -90,8 +95,16 @@ async function bootstrap(): Promise<void> {
     auditsRepo, scansRepo, projectsService,
     registry: aiRegistry, logger: log
   });
+  registerDataHandlers({
+    backup, db: handle.db, dbHandle: handle,
+    appDataRoot: paths.root, logsDir: paths.logsDir,
+    logger: log, getMainWindow: () => mainWindow,
+    projectsService, auditsRepo
+  });
+  registerUpdateHandlers(updaterApi);
 
   mainWindow = createMainWindow();
+  setupUpdater({ logger: log, getMainWindow: () => mainWindow });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

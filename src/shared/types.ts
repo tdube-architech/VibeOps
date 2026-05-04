@@ -225,6 +225,38 @@ export interface GeneratedPrompt {
   usedAt: string | null;
 }
 
+export interface UpdateState {
+  status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  currentVersion: string;
+  latestVersion: string | null;
+  message: string | null;
+  progressPercent: number | null;
+}
+
+export interface BackupExportResult {
+  destination: string;
+  bytesCopied: number;
+}
+
+export interface DashboardSummary {
+  totals: {
+    projects: number;
+    archived: number;
+    needsAudit: number;
+    memoryCurrent: number;
+    criticalFindings: number;
+  };
+  highestRiskProject: { id: string; name: string; score: number } | null;
+  recentFindings: Array<{
+    auditRunId: string;
+    projectId: string;
+    projectName: string;
+    title: string;
+    severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+    createdAt: string;
+  }>;
+}
+
 export interface AppSettings {
   schemaVersion: 1;
   appearance: { theme: 'dark' | 'light' };

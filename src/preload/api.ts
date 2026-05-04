@@ -5,7 +5,8 @@ import type {
   Scan, ScanFile, ScanEnvVar,
   Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource,
   AppSettings, AIProviderId,
-  AuditRun, AuditFinding, GeneratedPrompt, AuditType
+  AuditRun, AuditFinding, GeneratedPrompt, AuditType,
+  BackupExportResult, DashboardSummary, UpdateState
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -122,6 +123,24 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.promptGet, id)),
     update: (id: string, patch: { status?: GeneratedPrompt['status']; outcomeNotes?: string | null; usedAt?: string | null }): Promise<GeneratedPrompt | null> =>
       unwrap(ipcRenderer.invoke(IpcChannels.promptUpdate, { id, ...patch }))
+  },
+  data: {
+    exportDb: (): Promise<BackupExportResult> => unwrap(ipcRenderer.invoke(IpcChannels.dataExportDb)),
+    importDb: (): Promise<BackupExportResult> => unwrap(ipcRenderer.invoke(IpcChannels.dataImportDb)),
+    clearAuditHistory: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.dataClearAuditHistory)),
+    resetApp: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.dataResetApp)),
+    tailLogs: (count?: number): Promise<string[]> => unwrap(ipcRenderer.invoke(IpcChannels.dataTailLogs, count ?? 200)),
+    dashboardSummary: (): Promise<DashboardSummary> => unwrap(ipcRenderer.invoke(IpcChannels.dashboardSummary))
+  },
+  update: {
+    check: (): Promise<UpdateState> => unwrap(ipcRenderer.invoke(IpcChannels.updateCheck)),
+    download: (): Promise<UpdateState> => unwrap(ipcRenderer.invoke(IpcChannels.updateDownload)),
+    install: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.updateInstall)),
+    onState: (cb: (s: UpdateState) => void): (() => void) => {
+      const handler = (_e: unknown, s: UpdateState) => cb(s);
+      ipcRenderer.on(IpcChannels.updateState, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.updateState, handler);
+    }
   }
 };
 

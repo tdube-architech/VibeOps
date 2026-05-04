@@ -34,10 +34,10 @@ export function setupUpdater(deps: UpdaterDeps): void {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.logger = {
-    info: (m) => deps.logger.info({ updater: true }, String(m)),
-    warn: (m) => deps.logger.warn({ updater: true }, String(m)),
-    error: (m) => deps.logger.error({ updater: true }, String(m)),
-    debug: (m) => deps.logger.debug({ updater: true }, String(m))
+    info: (m: unknown) => deps.logger.info({ updater: true }, String(m)),
+    warn: (m: unknown) => deps.logger.warn({ updater: true }, String(m)),
+    error: (m: unknown) => deps.logger.error({ updater: true }, String(m)),
+    debug: (m: unknown) => deps.logger.debug({ updater: true }, String(m))
   } as never;
 
   autoUpdater.on('checking-for-update', () => {
