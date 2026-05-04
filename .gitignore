@@ -1,0 +1,42 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+out/
+build/
+release/
+*.tsbuildinfo
+
+# electron
+.vite/
+.electron-vite/
+
+# env / local
+.env
+.env.local
+.env.*.local
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+
+# logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# DB / runtime
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
+# test
+coverage/
