@@ -31,6 +31,9 @@ function emit(deps: UpdaterDeps): void {
   win.webContents.send(IpcChannels.updateState, state);
 }
 
+const STARTUP_CHECK_DELAY_MS = 15_000;
+const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
 export function setupUpdater(deps: UpdaterDeps): void {
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
@@ -65,6 +68,20 @@ export function setupUpdater(deps: UpdaterDeps): void {
     state = { ...state, status: 'downloaded', latestVersion: info.version, message: 'Update downloaded. Restart to install.' };
     emit(deps);
   });
+
+  if (app.isPackaged) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        deps.logger.warn({ err: (err as Error).message }, 'auto-update startup check failed');
+      });
+    }, STARTUP_CHECK_DELAY_MS);
+
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        deps.logger.warn({ err: (err as Error).message }, 'auto-update periodic check failed');
+      });
+    }, PERIODIC_CHECK_INTERVAL_MS);
+  }
 }
 
 export const updaterApi = {

@@ -1,18 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-
-export interface GitStatus {
-  isRepo: boolean;
-  branch: string | null;
-  remoteUrl: string | null;
-  dirty: boolean | null;
-}
+import type { GitStatus } from '@shared/types';
 
 export function detectGit(rootDir: string): GitStatus {
+  const empty: GitStatus = {
+    isRepo: false, branch: null, remoteUrl: null, dirty: null,
+    aheadBy: null, behindBy: null, upstream: null,
+    lastCommit: null, hasGitBinary: false
+  };
   const gitDir = path.join(rootDir, '.git');
-  if (!fs.existsSync(gitDir)) {
-    return { isRepo: false, branch: null, remoteUrl: null, dirty: null };
-  }
+  if (!fs.existsSync(gitDir)) return empty;
 
   let branch: string | null = null;
   try {
@@ -39,5 +36,5 @@ export function detectGit(rootDir: string): GitStatus {
     dirty = indexStat.mtimeMs > headStat.mtimeMs;
   } catch { /* ignore */ }
 
-  return { isRepo: true, branch, remoteUrl, dirty };
+  return { ...empty, isRepo: true, branch, remoteUrl, dirty };
 }

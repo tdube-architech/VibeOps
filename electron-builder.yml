@@ -26,4 +26,8 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   shortcutName: VibeOps
-publish: null
+publish:
+  provider: github
+  owner: tdube-architech
+  repo: VibeOps
+  releaseType: release

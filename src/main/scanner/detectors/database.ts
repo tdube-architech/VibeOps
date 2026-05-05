@@ -1,4 +1,5 @@
 import type { DetectorContext } from './index';
+import { hasAppFile, readAppFile } from './helpers';
 
 interface PackageJson {
   dependencies?: Record<string, string>;
@@ -6,7 +7,7 @@ interface PackageJson {
 }
 
 function parsePkg(ctx: DetectorContext): PackageJson | null {
-  const text = ctx.readText('package.json');
+  const text = readAppFile(ctx, 'package.json');
   if (!text) return null;
   try { return JSON.parse(text) as PackageJson; } catch { return null; }
 }
@@ -17,13 +18,13 @@ function hasDep(pkg: PackageJson | null, name: string): boolean {
 }
 
 export function detectDatabase(ctx: DetectorContext): string | null {
-  const has = (p: string) => ctx.files.includes(p);
+  const has = (p: string) => hasAppFile(ctx, p);
   const pkg = parsePkg(ctx);
 
   if (has('supabase/config.toml') || hasDep(pkg, '@supabase/supabase-js')) return 'Supabase Postgres';
 
   if (has('prisma/schema.prisma')) {
-    const schema = ctx.readText('prisma/schema.prisma') ?? '';
+    const schema = readAppFile(ctx, 'prisma/schema.prisma') ?? '';
     if (/provider\s*=\s*"postgresql"/.test(schema)) return 'Prisma + PostgreSQL';
     if (/provider\s*=\s*"mysql"/.test(schema)) return 'Prisma + MySQL';
     if (/provider\s*=\s*"sqlite"/.test(schema)) return 'Prisma + SQLite';

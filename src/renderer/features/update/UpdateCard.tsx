@@ -41,7 +41,7 @@ export function UpdateCard() {
           </div>
         )}
         <div className="text-xs text-muted-foreground">
-          Updates are placeholder-only in MVP — auto-publish is disabled. Infrastructure wired so a future release can flip checkForUpdates on at startup.
+          App auto-checks GitHub Releases 15 seconds after launch and every 6 hours thereafter. You can also check manually here.
         </div>
       </CardContent>
     </Card>

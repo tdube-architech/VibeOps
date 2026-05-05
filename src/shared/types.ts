@@ -163,6 +163,34 @@ export interface GitStatus {
   branch: string | null;
   remoteUrl: string | null;
   dirty: boolean | null;
+  aheadBy: number | null;
+  behindBy: number | null;
+  upstream: string | null;
+  lastCommit: GitCommit | null;
+  hasGitBinary: boolean;
+}
+
+export interface GitCommit {
+  sha: string;
+  shortSha: string;
+  author: string;
+  email: string;
+  date: string;
+  subject: string;
+}
+
+export interface GitBranch {
+  name: string;
+  isCurrent: boolean;
+  lastCommit: GitCommit | null;
+  upstream: string | null;
+}
+
+export interface GitInfo {
+  status: GitStatus;
+  recentCommits: GitCommit[];
+  branches: GitBranch[];
+  remotes: Array<{ name: string; url: string }>;
 }
 
 export interface DetectionResult {

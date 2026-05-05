@@ -10,7 +10,7 @@ import type {
   Workspace, WorkspaceInput,
   ChatSession, ChatMessage,
   Task, TaskInput, TaskListQuery, TaskPatch,
-  GitStatus
+  GitStatus, GitInfo
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -188,7 +188,9 @@ export const api = {
   },
   projectsExtra: {
     gitStatus: (projectId: string): Promise<GitStatus> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitStatus, projectId))
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitStatus, projectId)),
+    gitInfo: (projectId: string): Promise<GitInfo> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitInfo, projectId))
   },
   rulePack: {
     info: (): Promise<RulePackManifest | null> =>

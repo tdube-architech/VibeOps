@@ -10,9 +10,38 @@ export interface DetectorContext {
   rootDir: string;
   files: string[];
   readText: (relPath: string) => string | null;
+  /** Subdirectory prefix (with trailing slash) where the primary project lives. Empty if at repo root. */
+  appPrefix: string;
 }
 
-export function detectAll(ctx: DetectorContext): DetectionResult {
+const APP_ROOT_MARKERS = [
+  'package.json',
+  'pyproject.toml',
+  'requirements.txt',
+  'Pipfile',
+  'Cargo.toml',
+  'go.mod',
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts'
+];
+
+function findAppPrefix(files: string[]): string {
+  let best: string | null = null;
+  for (const rel of files) {
+    const slash = rel.lastIndexOf('/');
+    const base = slash >= 0 ? rel.slice(slash + 1) : rel;
+    if (!APP_ROOT_MARKERS.includes(base)) continue;
+    const prefix = slash >= 0 ? rel.slice(0, slash + 1) : '';
+    if (best === null || prefix.length < best.length) best = prefix;
+    if (best === '') break;
+  }
+  return best ?? '';
+}
+
+export function detectAll(rawCtx: Omit<DetectorContext, 'appPrefix'>): DetectionResult {
+  const appPrefix = findAppPrefix(rawCtx.files);
+  const ctx: DetectorContext = { ...rawCtx, appPrefix };
   const packageManager = detectPackageManager(ctx);
   const { frameworks, projectType } = detectFrameworks(ctx);
   const database = detectDatabase(ctx);

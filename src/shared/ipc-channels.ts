@@ -81,6 +81,7 @@ export const IpcChannels = {
   pipelineRun: 'pipeline:run',
   pipelineProgress: 'pipeline:progress',
   projectsGitStatus: 'projects:gitStatus',
+  projectsGitInfo: 'projects:gitInfo',
 
   rulePackInfo: 'rulePack:info',
   rulePackCheckUpdate: 'rulePack:checkUpdate',

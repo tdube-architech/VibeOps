@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.0.2). Tag v<version> will be created.'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Set version (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          npm version ${{ inputs.version }} --no-git-tag-version
+          echo "RELEASE_TAG=v${{ inputs.version }}" >> $GITHUB_ENV
+
+      - name: Set version (tag push)
+        if: github.event_name == 'push'
+        shell: bash
+        run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Typecheck
+        run: pnpm build:typecheck
+
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-builder --win --publish always
+
+      - name: Push tag (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "release: $RELEASE_TAG"
+          git tag $RELEASE_TAG
+          git push origin HEAD:main --tags

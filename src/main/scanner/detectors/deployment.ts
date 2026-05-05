@@ -1,7 +1,8 @@
 import type { DetectorContext } from './index';
+import { hasAppFile } from './helpers';
 
 export function detectDeployment(ctx: DetectorContext): string | null {
-  const has = (p: string) => ctx.files.includes(p);
+  const has = (p: string) => hasAppFile(ctx, p);
   if (has('vercel.json')) return 'Vercel';
   if (has('netlify.toml')) return 'Netlify';
   if (has('render.yaml')) return 'Render';

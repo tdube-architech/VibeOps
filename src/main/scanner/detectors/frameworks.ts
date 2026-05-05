@@ -1,4 +1,5 @@
 import type { DetectorContext } from './index';
+import { hasAppFile, readAppFile, hasAppFileMatching } from './helpers';
 
 interface PackageJson {
   dependencies?: Record<string, string>;
@@ -6,7 +7,7 @@ interface PackageJson {
 }
 
 function parsePkg(ctx: DetectorContext): PackageJson | null {
-  const text = ctx.readText('package.json');
+  const text = readAppFile(ctx, 'package.json');
   if (!text) return null;
   try { return JSON.parse(text) as PackageJson; } catch { return null; }
 }
@@ -18,26 +19,25 @@ function hasDep(pkg: PackageJson | null, name: string): boolean {
 
 export function detectFrameworks(ctx: DetectorContext): { frameworks: string[]; projectType: string | null } {
   const f = new Set<string>();
-  const has = (p: string) => ctx.files.includes(p);
   const pkg = parsePkg(ctx);
 
-  if (hasDep(pkg, 'next') || ctx.files.some((p) => /^next\.config\.(js|ts|mjs|cjs)$/.test(p))) f.add('Next.js');
+  if (hasDep(pkg, 'next') || hasAppFileMatching(ctx, (p) => /^next\.config\.(js|ts|mjs|cjs)$/.test(p))) f.add('Next.js');
   if (hasDep(pkg, 'react')) f.add('React');
   if (hasDep(pkg, 'vue')) f.add('Vue');
   if (hasDep(pkg, 'svelte')) f.add('Svelte');
-  if (hasDep(pkg, 'astro') || ctx.files.some((p) => p.startsWith('astro.config.'))) f.add('Astro');
+  if (hasDep(pkg, 'astro') || hasAppFileMatching(ctx, (p) => p.startsWith('astro.config.'))) f.add('Astro');
   if (hasDep(pkg, 'remix') || hasDep(pkg, '@remix-run/react')) f.add('Remix');
   if (hasDep(pkg, 'expo')) f.add('Expo');
   if (hasDep(pkg, 'react-native')) f.add('React Native');
-  if (hasDep(pkg, 'electron') || has('electron-builder.yml')) f.add('Electron');
-  if (hasDep(pkg, 'vite') || ctx.files.some((p) => p.startsWith('vite.config.'))) f.add('Vite');
-  if (hasDep(pkg, 'tailwindcss') || ctx.files.some((p) => p.startsWith('tailwind.config.'))) f.add('Tailwind CSS');
-  if (has('tauri.conf.json')) f.add('Tauri');
+  if (hasDep(pkg, 'electron') || hasAppFile(ctx, 'electron-builder.yml')) f.add('Electron');
+  if (hasDep(pkg, 'vite') || hasAppFileMatching(ctx, (p) => p.startsWith('vite.config.'))) f.add('Vite');
+  if (hasDep(pkg, 'tailwindcss') || hasAppFileMatching(ctx, (p) => p.startsWith('tailwind.config.'))) f.add('Tailwind CSS');
+  if (hasAppFile(ctx, 'tauri.conf.json')) f.add('Tauri');
   if (hasDep(pkg, 'drizzle-orm')) f.add('Drizzle ORM');
-  if (hasDep(pkg, '@prisma/client') || has('prisma/schema.prisma')) f.add('Prisma');
+  if (hasDep(pkg, '@prisma/client') || hasAppFile(ctx, 'prisma/schema.prisma')) f.add('Prisma');
 
-  const reqs = ctx.readText('requirements.txt') ?? '';
-  const pyproject = ctx.readText('pyproject.toml') ?? '';
+  const reqs = readAppFile(ctx, 'requirements.txt') ?? '';
+  const pyproject = readAppFile(ctx, 'pyproject.toml') ?? '';
   if (/(^|\n)\s*fastapi\b/i.test(reqs) || /fastapi/i.test(pyproject)) f.add('FastAPI');
   if (/(^|\n)\s*django\b/i.test(reqs) || /django/i.test(pyproject)) f.add('Django');
   if (/(^|\n)\s*flask\b/i.test(reqs) || /flask/i.test(pyproject)) f.add('Flask');

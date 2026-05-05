@@ -6,9 +6,11 @@ import type {
   ProjectInput,
   ProjectListQuery,
   ProjectPatch,
-  GitStatus
+  GitStatus,
+  GitInfo
 } from '@shared/types';
 import { detectGit } from '@main/scanner/detectors/git';
+import { getGitInfo } from '@main/projects/git-history';
 import { ProjectsService, DuplicatePathError, InvalidPathError } from '@main/projects/service';
 
 export interface ProjectsContext {
@@ -95,6 +97,15 @@ export function registerProjectsHandlers(ctx: ProjectsContext): void {
       const project = ctx.service.byId(projectId);
       if (!project) throw new Error('project not found');
       return ok(detectGit(project.localPath));
+    } catch (e) { return fail(e); }
+  });
+
+  ipcMain.handle(IpcChannels.projectsGitInfo, async (_e, projectId: string): Promise<Result<GitInfo>> => {
+    try {
+      const project = ctx.service.byId(projectId);
+      if (!project) throw new Error('project not found');
+      const info = await getGitInfo(project.localPath, { commitLimit: 50 });
+      return ok(info);
     } catch (e) { return fail(e); }
   });
 }

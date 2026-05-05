@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { UpdatePrompt } from '@/features/update/UpdatePrompt';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import type { PipelineEvent, PipelineStage } from '@shared/pipeline-events';
@@ -58,6 +59,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <UpdatePrompt />
     </div>
   );
 }

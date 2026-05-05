@@ -1,4 +1,5 @@
 import type { DetectorContext } from './index';
+import { hasAppFile, readAppFile } from './helpers';
 
 interface PackageJson {
   dependencies?: Record<string, string>;
@@ -6,7 +7,7 @@ interface PackageJson {
 }
 
 function parsePkg(ctx: DetectorContext): PackageJson | null {
-  const text = ctx.readText('package.json');
+  const text = readAppFile(ctx, 'package.json');
   if (!text) return null;
   try { return JSON.parse(text) as PackageJson; } catch { return null; }
 }
@@ -18,7 +19,7 @@ function hasDep(pkg: PackageJson | null, name: string): boolean {
 
 export function detectAuth(ctx: DetectorContext): string | null {
   const pkg = parsePkg(ctx);
-  if (ctx.files.includes('supabase/config.toml') || hasDep(pkg, '@supabase/supabase-js')) return 'Supabase Auth';
+  if (hasAppFile(ctx, 'supabase/config.toml') || hasDep(pkg, '@supabase/supabase-js')) return 'Supabase Auth';
   if (hasDep(pkg, 'next-auth')) return 'NextAuth';
   if (hasDep(pkg, '@clerk/nextjs') || hasDep(pkg, '@clerk/clerk-sdk-node')) return 'Clerk';
   if (hasDep(pkg, '@auth0/nextjs-auth0') || hasDep(pkg, 'auth0')) return 'Auth0';

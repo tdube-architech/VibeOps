@@ -18,11 +18,12 @@ function row(label: string, value: React.ReactNode) {
 
 export function ProjectOverviewTab({ project }: { project: Project }) {
   const { data: latest } = useLatestScan(project.id);
-  const { data: git } = useQuery({
-    queryKey: ['git-status', project.id],
-    queryFn: () => api.projectsExtra.gitStatus(project.id),
+  const { data: gitInfo } = useQuery({
+    queryKey: ['git-info', project.id],
+    queryFn: () => api.projectsExtra.gitInfo(project.id),
     staleTime: 60_000
   });
+  const git = gitInfo?.status ?? null;
   return (
     <div className="space-y-4">
       <Card>
@@ -45,18 +46,25 @@ export function ProjectOverviewTab({ project }: { project: Project }) {
         <CardHeader>
           <CardTitle className="text-base">Git Status</CardTitle>
           <CardDescription>
-            {git === undefined ? 'Checking…' : git.isRepo ? 'Tracked by Git' : 'Not a Git repository'}
+            {git === null ? 'Checking…' : git.isRepo ? 'Tracked by Git' : 'Not a Git repository'}
           </CardDescription>
         </CardHeader>
         {git?.isRepo && (
           <CardContent className="space-y-1 text-sm">
             {row('Branch', git.branch ?? '—')}
             {row('Remote', git.remoteUrl ?? '—')}
+            {row('Upstream', git.upstream ?? '—')}
+            {row('Ahead / Behind', git.upstream
+              ? `${git.aheadBy ?? 0} ahead, ${git.behindBy ?? 0} behind`
+              : '—')}
             {row('Working Tree', git.dirty === null
               ? '—'
               : git.dirty
                 ? <Badge variant="destructive">Dirty</Badge>
                 : <Badge variant="secondary">Clean</Badge>)}
+            {row('Last Commit', git.lastCommit
+              ? <><span className="font-mono text-xs">{git.lastCommit.shortSha}</span> {git.lastCommit.subject}</>
+              : '—')}
           </CardContent>
         )}
       </Card>

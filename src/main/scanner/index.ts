@@ -63,7 +63,7 @@ function buildFileRow(project: Project, scanId: string, f: WalkedFile, lastSeenA
   };
 }
 
-function buildDetectorContext(project: Project, files: WalkedFile[]): DetectorContext {
+function buildDetectorContext(project: Project, files: WalkedFile[]): Omit<DetectorContext, 'appPrefix'> {
   const set = files.map((f) => f.relativePath);
   return {
     rootDir: project.localPath,

@@ -37,7 +37,25 @@ export async function walkProject(rootDir: string, opts: WalkOptions = {}): Prom
     onlyFiles: false,
     followSymbolicLinks: false,
     suppressErrors: true,
-    stats: true
+    stats: true,
+    ignore: [
+      '**/node_modules/**',
+      '**/.git/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/out/**',
+      '**/.next/**',
+      '**/.turbo/**',
+      '**/.cache/**',
+      '**/.vercel/**',
+      '**/.netlify/**',
+      '**/release/**',
+      '**/coverage/**',
+      '**/.venv/**',
+      '**/venv/**',
+      '**/__pycache__/**',
+      '**/target/**'
+    ]
   });
 
   let totalBytes = 0;
