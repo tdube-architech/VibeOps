@@ -38,7 +38,7 @@ export function createMainWindow(): BrowserWindow {
   win.once('ready-to-show', () => {
     win.maximize();
     win.show();
-    if (process.env.VIBEOPS_DEVTOOLS === '1') {
+    if (process.env.VIBEOPS_DEVTOOLS === '1' || !process.env.ELECTRON_RENDERER_URL) {
       win.webContents.openDevTools({ mode: 'detach' });
     }
   });

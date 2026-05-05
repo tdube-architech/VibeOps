@@ -21,6 +21,8 @@ export interface Project {
   lastScannedAt: string | null;
   lastAuditedAt: string | null;
   workspaceId: string;
+  /** Where this project record currently lives. 'cloud' = synced via Supabase. 'local' = local SQLite only, not yet migrated. */
+  source?: 'cloud' | 'local';
 }
 
 export interface Workspace {

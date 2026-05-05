@@ -46,14 +46,18 @@ export function MigrationDialog({ open, onOpenChange }: Props) {
   async function onUpload() {
     if (!unmigrated) return;
     const list = unmigrated.filter((p) => selected.has(p.id));
-    const errors = await run(list);
-    if (errors.length === 0) {
-      toast.success(`Uploaded ${list.length} project${list.length === 1 ? '' : 's'}`);
-      onOpenChange(false);
-      void refresh();
-    } else {
-      toast.error(`Uploaded ${list.length - errors.length} of ${list.length}`, `${errors.length} failed`);
-      void refresh();
+    try {
+      const errors = await run(list);
+      if (errors.length === 0) {
+        toast.success(`Uploaded ${list.length} project${list.length === 1 ? '' : 's'}`);
+        onOpenChange(false);
+        void refresh();
+      } else {
+        toast.error(`Uploaded ${list.length - errors.length} of ${list.length}`, `${errors.length} failed`);
+        void refresh();
+      }
+    } catch (e) {
+      toast.error('Migration failed', (e as Error).message);
     }
   }
 

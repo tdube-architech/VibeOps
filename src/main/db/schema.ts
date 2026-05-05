@@ -6,7 +6,7 @@ export const projects = sqliteTable('projects', {
   name: text('name').notNull(),
   slug: text('slug').notNull(),
   description: text('description'),
-  localPath: text('local_path').notNull().unique(),
+  localPath: text('local_path').notNull(),
   repoUrl: text('repo_url'),
   category: text('category'),
   status: text('status').notNull().default('active'),

@@ -50,6 +50,13 @@
       "when": 1777916895701,
       "tag": "0006_needy_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778001000000,
+      "tag": "0007_drop_local_path_unique",
+      "breakpoints": true
     }
   ]
 }

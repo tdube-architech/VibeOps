@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { flexRender, getCoreRowModel, getFilteredRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Cloud, HardDrive, Upload } from 'lucide-react';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
+import { useMigrateOne } from '@/features/migrate/useMigrate';
+import { toast } from '@/lib/toast';
 import { useProjectList } from './useProjects';
 import { useSelectedProjectId, useSetSelectedProject } from './selectedProject';
 import { cn } from '@/lib/utils';
@@ -20,7 +24,18 @@ const columns: ColumnDef<Project>[] = [
     accessorKey: 'name',
     cell: ({ row }) => (
       <div>
-        <div className="font-medium">{row.original.name}</div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{row.original.name}</span>
+          {row.original.source === 'local' ? (
+            <Badge variant="warning" className="gap-1">
+              <HardDrive className="h-3 w-3" /> Local only
+            </Badge>
+          ) : (
+            <Badge variant="success" className="gap-1">
+              <Cloud className="h-3 w-3" /> Cloud
+            </Badge>
+          )}
+        </div>
         <div className="text-xs text-muted-foreground truncate max-w-[28rem]">{row.original.localPath}</div>
       </div>
     )
@@ -48,10 +63,17 @@ export function ProjectTable({ includeArchived = false }: Props) {
   const navigate = useNavigate();
   const setSelected = useSetSelectedProject();
   const selectedId = useSelectedProjectId();
+  const migrateOne = useMigrateOne();
   const { data: projects = [], isLoading } = useProjectList({
     ...(search ? { search } : {}),
     includeArchived
   });
+
+  async function onMigrate(p: Project) {
+    const res = await migrateOne(p);
+    if (res.ok) toast.success(`Migrated ${p.name}`, 'Now visible to workspace members.');
+    else toast.error(`Migration failed`, res.message);
+  }
 
   const data = useMemo(() => projects, [projects]);
 
@@ -105,7 +127,15 @@ export function ProjectTable({ includeArchived = false }: Props) {
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right space-x-1 whitespace-nowrap">
+                    {row.original.source === 'local' && (
+                      <Button variant="outline" size="sm" onClick={(e) => {
+                        e.stopPropagation();
+                        void onMigrate(row.original);
+                      }}>
+                        <Upload className="h-3 w-3" /> Migrate
+                      </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/projects/${row.original.id}`);

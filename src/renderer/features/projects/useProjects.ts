@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
 import { useAuth } from '@/features/auth/useAuth';
 import {
-  addProject, archiveProject, checkPathExists, getProject, listProjects,
+  addProject, archiveProject, checkPathExists, getProject, listProjectsMerged,
   removeProject, unarchiveProject, updateProject
 } from '@/lib/data/projects';
 import type { Project, ProjectInput, ProjectListQuery, ProjectPatch } from '@shared/types';
@@ -10,14 +10,19 @@ import type { Project, ProjectInput, ProjectListQuery, ProjectPatch } from '@sha
 const PROJECTS_KEY = ['projects'] as const;
 const projectKey = (id: string) => ['projects', id] as const;
 
+function isUuid(s: string | null | undefined): boolean {
+  return !!s && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
 export function useProjectList(q: ProjectListQuery = {}) {
   const wsId = useActiveWorkspaceId();
   const { state } = useAuth();
-  const merged: ProjectListQuery & { workspaceId?: string } = { ...q, ...(wsId ? { workspaceId: wsId } : {}) };
+  const wsIdValid = isUuid(wsId);
+  const merged: ProjectListQuery & { workspaceId?: string } = { ...q, ...(wsIdValid && wsId ? { workspaceId: wsId } : {}) };
   return useQuery({
     queryKey: [...PROJECTS_KEY, 'list', merged],
-    queryFn: () => listProjects(merged),
-    enabled: state?.status === 'authenticated' && !!wsId
+    queryFn: () => listProjectsMerged(merged),
+    enabled: state?.status === 'authenticated' && wsIdValid
   });
 }
 
@@ -35,8 +40,8 @@ export function useAddProject() {
   const wsId = useActiveWorkspaceId();
   return useMutation({
     mutationFn: ({ input, allowDuplicate }: { input: ProjectInput; allowDuplicate?: boolean }) => {
-      if (!wsId) throw new Error('No active workspace');
-      return addProject(input, wsId, allowDuplicate);
+      if (!isUuid(wsId)) throw new Error('Active workspace not yet ready — try again in a moment.');
+      return addProject(input, wsId!, allowDuplicate);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: PROJECTS_KEY })
   });

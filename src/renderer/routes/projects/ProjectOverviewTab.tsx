@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
+import { Upload } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ProjectStatusBadge } from '@/features/projects/ProjectStatusBadge';
 import { ProjectSummaryCard } from '@/features/projects/ProjectSummaryCard';
 import { useLatestScan } from '@/features/projects/useScans';
+import { useMigrateOne } from '@/features/migrate/useMigrate';
 import { api } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import type { Project } from '@shared/types';
 
 function row(label: string, value: React.ReactNode) {
@@ -18,6 +22,12 @@ function row(label: string, value: React.ReactNode) {
 
 export function ProjectOverviewTab({ project }: { project: Project }) {
   const { data: latest } = useLatestScan(project.id);
+  const migrateOne = useMigrateOne();
+  async function migrateNow() {
+    const res = await migrateOne(project);
+    if (res.ok) toast.success(`Migrated ${project.name}`, 'Cloud-synced; visible to workspace members.');
+    else toast.error('Migration failed', res.message);
+  }
   const { data: gitInfo } = useQuery({
     queryKey: ['git-info', project.id],
     queryFn: () => api.projectsExtra.gitInfo(project.id),
@@ -33,6 +43,16 @@ export function ProjectOverviewTab({ project }: { project: Project }) {
         </CardHeader>
         <CardContent className="pt-2">
           {row('Status', <ProjectStatusBadge status={project.status} />)}
+          {row('Sync', project.source === 'local'
+            ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="warning">Local only</Badge>
+                <Button size="sm" variant="outline" onClick={migrateNow}>
+                  <Upload className="h-3 w-3" /> Migrate to Cloud
+                </Button>
+              </div>
+            )
+            : <Badge variant="success">Cloud-synced</Badge>)}
           {row('Local Path', <code className="text-xs break-all">{project.localPath}</code>)}
           {row('Repository', project.repoUrl ?? git?.remoteUrl ?? '—')}
           {row('Category', project.category ?? '—')}

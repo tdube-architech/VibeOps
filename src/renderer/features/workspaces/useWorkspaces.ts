@@ -37,11 +37,14 @@ export function useEnsureDefaultWorkspace() {
         qc.invalidateQueries({ queryKey: KEY });
         const settings = await api.settings.read();
         const list = await listWorkspaces();
-        const activeStillValid = settings.workspaces.activeWorkspaceId
-          && list.some((w: Workspace) => w.id === settings.workspaces.activeWorkspaceId);
+        const activeId = settings.workspaces.activeWorkspaceId;
+        const isUuid = typeof activeId === 'string'
+          && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(activeId);
+        const activeStillValid = isUuid && list.some((w: Workspace) => w.id === activeId);
         if (!activeStillValid) {
           await api.workspaces.setActive(ws.id);
           qc.invalidateQueries({ queryKey: ['settings'] });
+          qc.invalidateQueries({ queryKey: ['projects'] });
         }
       } catch {
         // soft-fail

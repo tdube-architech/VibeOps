@@ -1,4 +1,5 @@
 import { getSupabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 import type { Project, ProjectInput, ProjectListQuery, ProjectPatch, ProjectStatus } from '@shared/types';
 
 interface ProjectRow {
@@ -81,10 +82,47 @@ export async function listProjects(q: ProjectListQuery & { workspaceId?: string 
   const stateById = new Map<string, UserStateRow>();
   for (const s of states ?? []) stateById.set(s.project_id, s);
 
-  return projects.map((p) => rowToProject(p as ProjectRow, stateById.get(p.id)));
+  return projects.map((p) => ({ ...rowToProject(p as ProjectRow, stateById.get(p.id)), source: 'cloud' as const }));
+}
+
+/**
+ * Returns cloud-synced projects in the active workspace + local-only projects
+ * not yet migrated. Each entry tagged with source: 'cloud' | 'local'.
+ *
+ * Local list intentionally drops workspaceId filter — local rows live with
+ * the legacy 'ws_local' workspace that doesn't match any server UUID.
+ */
+export async function listProjectsMerged(q: ProjectListQuery & { workspaceId?: string }): Promise<Project[]> {
+  const cloud = await listProjects(q);
+
+  const localQuery: ProjectListQuery = {};
+  if (q.search) localQuery.search = q.search;
+  if (q.status) localQuery.status = q.status;
+  if (q.sort) localQuery.sort = q.sort;
+  if (q.includeArchived) localQuery.includeArchived = q.includeArchived;
+
+  const [localList, migrateStatus] = await Promise.all([
+    api.projects.list(localQuery).catch(() => [] as Project[]),
+    api.migrate.status().catch(() => ({ unmigrated: [] as Project[], alreadyMigrated: 0, skippedAt: null }))
+  ]);
+
+  const unmigratedIds = new Set(migrateStatus.unmigrated.map((u) => u.id));
+  const localOnly = localList
+    .filter((p) => unmigratedIds.has(p.id))
+    .map((p) => ({ ...p, source: 'local' as const }));
+
+  return [...cloud, ...localOnly];
 }
 
 export async function getProject(id: string): Promise<Project | null> {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  if (!isUuid) {
+    // local-only project — fall back to local SQLite IPC
+    const local = await api.projects.get(id).catch(() => null);
+    if (!local) return null;
+    return { ...local, source: 'local' as const };
+  }
+
   const supabase = getSupabase();
   const userId = await getCurrentUserId();
   const { data: row, error } = await supabase
@@ -100,7 +138,7 @@ export async function getProject(id: string): Promise<Project | null> {
     .eq('user_id', userId)
     .eq('project_id', id)
     .maybeSingle();
-  return rowToProject(row as ProjectRow, state ?? undefined);
+  return { ...rowToProject(row as ProjectRow, state ?? undefined), source: 'cloud' as const };
 }
 
 export async function checkPathExists(localPath: string, workspaceId: string): Promise<Project | null> {
