@@ -64,10 +64,13 @@ export async function publishRulePack(opts: PublishOptions): Promise<{ packPath:
     const create = await runCli('gh', [
       'release', 'create', tag,
       '--repo', repo,
+      '--prerelease',
       '--title', `Rule pack ${opts.pack.manifest.packVersion}`,
       '--notes', `Automated rule-pack publish. ${opts.pack.manifest.ruleCount} rules.`
     ]);
     if (create.code !== 0) throw new Error(`gh release create failed: ${create.stderr}`);
+  } else {
+    await runCli('gh', ['release', 'edit', tag, '--repo', repo, '--prerelease']);
   }
 
   const upload = await runCli('gh', [
@@ -84,9 +87,12 @@ export async function publishRulePack(opts: PublishOptions): Promise<{ packPath:
     await runCli('gh', [
       'release', 'create', latestTag,
       '--repo', repo,
+      '--prerelease',
       '--title', 'Rule pack — latest pointer',
       '--notes', 'Always-overwritten manifest pointing to the most recent rule pack.'
     ]);
+  } else {
+    await runCli('gh', ['release', 'edit', latestTag, '--repo', repo, '--prerelease']);
   }
   await runCli('gh', ['release', 'upload', latestTag, manifestPath, '--repo', repo, '--clobber']);
 
