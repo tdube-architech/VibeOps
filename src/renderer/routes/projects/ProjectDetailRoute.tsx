@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Pencil, Archive, Trash2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Pencil, Archive, Trash2, RotateCcw, Share2 } from 'lucide-react';
+import { ShareProjectDialog } from '@/features/projects/ShareProjectDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useProject, useArchiveProject, useUnarchiveProject, useRemoveProject } from '@/features/projects/useProjects';
@@ -20,6 +21,7 @@ export function ProjectDetailRoute() {
   const unarchive = useUnarchiveProject();
   const remove = useRemoveProject();
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Loading…</div>;
   if (!project) return <div className="text-sm text-muted-foreground">Project not found.</div>;
@@ -41,6 +43,11 @@ export function ProjectDetailRoute() {
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         <div className="flex gap-2">
+          {project.source !== 'local' && (
+            <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+              <Share2 className="h-4 w-4" /> Share
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4" /> Edit
           </Button>
@@ -77,6 +84,15 @@ export function ProjectDetailRoute() {
       </Tabs>
 
       <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />
+      {project.source !== 'local' && (
+        <ShareProjectDialog
+          projectId={project.id}
+          projectName={project.name}
+          visibility={project.visibility ?? 'workspace'}
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+        />
+      )}
     </div>
   );
 }

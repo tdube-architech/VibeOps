@@ -28,8 +28,14 @@ export function registerMigrateHandlers(ctx: MigrateContext): void {
       const map = readMigrationMap(ctx.appDataRoot);
       const all = ctx.projectsService.list({ includeArchived: true });
       const migratedSet = new Set(Object.keys(map.mappings));
-      const unmigrated = all.filter((p) => !migratedSet.has(p.id));
-      const alreadyMigrated = all.length - unmigrated.length;
+      // Only legacy local ids (prj_xxx) are migration candidates.
+      // UUID-shaped ids are stubs mirroring cloud projects, created by upsertStub
+      // during scan/audit; they must never appear as "local-only" candidates.
+      const isLegacyLocalId = (id: string) => /^prj_[a-z0-9]+$/i.test(id);
+      const unmigrated = all
+        .filter((p) => isLegacyLocalId(p.id))
+        .filter((p) => !migratedSet.has(p.id));
+      const alreadyMigrated = Object.keys(map.mappings).length;
       return ok({ unmigrated, alreadyMigrated, skippedAt: map.skippedAt });
     } catch (e) { return fail(e); }
   });

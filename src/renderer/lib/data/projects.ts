@@ -13,6 +13,7 @@ interface ProjectRow {
   tags: string[] | null;
   primary_stack: string | null;
   status: ProjectStatus;
+  visibility?: 'workspace' | 'private' | 'restricted';
   created_at: string;
   updated_at: string;
   last_audited_at: string | null;
@@ -36,6 +37,7 @@ function rowToProject(row: ProjectRow, userState?: UserStateRow): Project {
     category: row.category,
     status: row.status,
     primaryStack: row.primary_stack,
+    visibility: row.visibility ?? 'workspace',
     tags: row.tags ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -61,7 +63,7 @@ export async function listProjects(q: ProjectListQuery & { workspaceId?: string 
 
   let projectQuery = supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
     .order(q.sort === 'name' ? 'name' : 'updated_at', { ascending: q.sort === 'name' });
 
   if (wsId) projectQuery = projectQuery.eq('workspace_id', wsId);
@@ -106,9 +108,13 @@ export async function listProjectsMerged(q: ProjectListQuery & { workspaceId?: s
     api.migrate.status().catch(() => ({ unmigrated: [] as Project[], alreadyMigrated: 0, skippedAt: null }))
   ]);
 
+  const isLegacyLocalId = (id: string) => /^prj_[a-z0-9]+$/i.test(id);
   const unmigratedIds = new Set(migrateStatus.unmigrated.map((u) => u.id));
+  const cloudPaths = new Set(cloud.map((p) => p.localPath).filter(Boolean));
   const localOnly = localList
+    .filter((p) => isLegacyLocalId(p.id))
     .filter((p) => unmigratedIds.has(p.id))
+    .filter((p) => !cloudPaths.has(p.localPath))
     .map((p) => ({ ...p, source: 'local' as const }));
 
   return [...cloud, ...localOnly];
@@ -127,7 +133,7 @@ export async function getProject(id: string): Promise<Project | null> {
   const userId = await getCurrentUserId();
   const { data: row, error } = await supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -153,7 +159,7 @@ export async function checkPathExists(localPath: string, workspaceId: string): P
   if (ids.length === 0) return null;
   const { data: rows } = await supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
     .in('id', ids)
     .eq('workspace_id', workspaceId)
     .limit(1);
@@ -191,7 +197,7 @@ export async function addProject(
       tags: input.tags ?? [],
       repo_url: input.repoUrl?.trim() || null
     })
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
     .single();
   if (error) throw new Error(error.message);
 
@@ -221,7 +227,7 @@ export async function updateProject(patch: ProjectPatch): Promise<Project> {
     .from('projects')
     .update(update)
     .eq('id', patch.id)
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
     .single();
   if (error) throw new Error(error.message);
   return rowToProject(data as ProjectRow);

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { pushAuditCompleted } from '@/lib/data/sync-progress';
 import type { AuditRun, AuditFinding, GeneratedPrompt } from '@shared/types';
 
 const auditsKey = (projectId: string) => ['audits', projectId] as const;
@@ -27,7 +28,12 @@ export function useStartAudit() {
   return useMutation({
     mutationFn: (project: { id: string; localPath: string; name: string }) =>
       api.audits.start(project.id, undefined, { localPath: project.localPath, name: project.name }),
-    onSuccess: (_run, project) => {
+    onSuccess: async (run, project) => {
+      try {
+        await pushAuditCompleted(project.id, run.completedAt ?? new Date().toISOString());
+      } catch {
+        // soft-fail
+      }
       qc.invalidateQueries({ queryKey: auditsKey(project.id) });
       qc.invalidateQueries({ queryKey: latestKey(project.id) });
       qc.invalidateQueries({ queryKey: promptsKey(project.id) });

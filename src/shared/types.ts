@@ -23,6 +23,8 @@ export interface Project {
   workspaceId: string;
   /** Where this project record currently lives. 'cloud' = synced via Supabase. 'local' = local SQLite only, not yet migrated. */
   source?: 'cloud' | 'local';
+  /** Project ACL. Only meaningful for cloud projects. */
+  visibility?: 'workspace' | 'private' | 'restricted';
 }
 
 export interface Workspace {

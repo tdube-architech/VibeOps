@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { pushScanCompleted } from '@/lib/data/sync-progress';
 import type { Scan, ScanFile, ScanEnvVar } from '@shared/types';
 import type { ScanProgressEvent } from '@shared/scan-events';
 
@@ -46,7 +47,17 @@ export function useStartScan() {
   return useMutation({
     mutationFn: (project: { id: string; localPath: string; name: string }) =>
       api.scans.start(project.id, { localPath: project.localPath, name: project.name }),
-    onSuccess: (_scan, project) => {
+    onSuccess: async (scan, project) => {
+      try {
+        await pushScanCompleted(
+          project.id,
+          scan.completedAt ?? new Date().toISOString(),
+          project.localPath,
+          scan.detection?.primaryStack ?? null
+        );
+      } catch {
+        // soft-fail; local stub still has the timestamp
+      }
       qc.invalidateQueries({ queryKey: scansKey(project.id) });
       qc.invalidateQueries({ queryKey: latestKey(project.id) });
       qc.invalidateQueries({ queryKey: ['projects', project.id] });
