@@ -1,5 +1,6 @@
 import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
+import { AuthGate } from '@/features/auth/AuthGate';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { ProjectsRoute } from '@/routes/ProjectsRoute';
 import { ProjectDetailRoute } from '@/routes/projects/ProjectDetailRoute';
@@ -27,5 +28,9 @@ const router = createHashRouter([
 ]);
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthGate>
+      <RouterProvider router={router} />
+    </AuthGate>
+  );
 }

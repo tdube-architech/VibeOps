@@ -21,6 +21,10 @@ win:
       arch:
         - x64
   icon: build/icon.ico
+protocols:
+  - name: VibeOps
+    schemes:
+      - vibeops
 nsis:
   oneClick: false
   perMachine: false

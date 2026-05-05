@@ -85,7 +85,15 @@ export const IpcChannels = {
 
   rulePackInfo: 'rulePack:info',
   rulePackCheckUpdate: 'rulePack:checkUpdate',
-  rulePackState: 'rulePack:state'
+  rulePackState: 'rulePack:state',
+
+  authState: 'auth:state',
+  authGetState: 'auth:getState',
+  authGetSession: 'auth:getSession',
+  authSaveSession: 'auth:saveSession',
+  authSignInGitHub: 'auth:signInGitHub',
+  authSignOut: 'auth:signOut',
+  authDeepLink: 'auth:deepLink'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

@@ -16,8 +16,11 @@ import {
   registerChatHandlers,
   registerTaskHandlers,
   registerPipelineHandlers,
-  registerRulePackHandlers
+  registerRulePackHandlers,
+  registerAuthHandlers
 } from './ipc/handlers';
+import { AuthService } from './auth/service';
+import { setupProtocolHandler } from './auth/protocol';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
@@ -49,6 +52,22 @@ async function bootstrap(): Promise<void> {
   const paths = resolveAppPaths();
   const log = getLogger(paths.logsDir);
   log.info({ root: paths.root }, 'app data root resolved');
+
+  const supabaseUrl = process.env.MAIN_VITE_SUPABASE_URL ?? '';
+  const auth = new AuthService({
+    appDataRoot: paths.root,
+    supabaseUrl,
+    logger: log,
+    getMainWindow: () => mainWindow
+  });
+  setupProtocolHandler({
+    logger: log,
+    getMainWindow: () => mainWindow,
+    onDeepLink: (url) => {
+      log.info({ url }, 'deep link received');
+      auth.forwardDeepLink(url);
+    }
+  });
 
   const handle = openDb(paths.dbFile);
   runMigrations(handle);
@@ -139,6 +158,7 @@ async function bootstrap(): Promise<void> {
     appDataRoot: paths.root
   });
   registerRulePackHandlers({ appDataRoot: paths.root, logger: log });
+  registerAuthHandlers(auth);
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });

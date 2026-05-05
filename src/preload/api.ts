@@ -10,7 +10,8 @@ import type {
   Workspace, WorkspaceInput,
   ChatSession, ChatMessage,
   Task, TaskInput, TaskListQuery, TaskPatch,
-  GitStatus, GitInfo
+  GitStatus, GitInfo,
+  AuthState, PersistedSession
 } from '@shared/types';
 import type { AITestConnectionResult, ProjectAnalysisResult } from '@shared/ai';
 import type { ScanProgressEvent } from '@shared/scan-events';
@@ -203,6 +204,24 @@ export const api = {
       const handler = (_e: unknown, r: RulePackUpdateResult) => cb(r);
       ipcRenderer.on(IpcChannels.rulePackState, handler);
       return () => ipcRenderer.removeListener(IpcChannels.rulePackState, handler);
+    }
+  },
+  auth: {
+    getState: (): Promise<AuthState> => unwrap(ipcRenderer.invoke(IpcChannels.authGetState)),
+    getSession: (): Promise<PersistedSession | null> => unwrap(ipcRenderer.invoke(IpcChannels.authGetSession)),
+    saveSession: (session: PersistedSession): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.authSaveSession, session)),
+    signInGitHub: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.authSignInGitHub)),
+    signOut: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.authSignOut)),
+    onState: (cb: (s: AuthState) => void): (() => void) => {
+      const handler = (_e: unknown, s: AuthState) => cb(s);
+      ipcRenderer.on(IpcChannels.authState, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.authState, handler);
+    },
+    onDeepLink: (cb: (url: string) => void): (() => void) => {
+      const handler = (_e: unknown, url: string) => cb(url);
+      ipcRenderer.on(IpcChannels.authDeepLink, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.authDeepLink, handler);
     }
   }
 };

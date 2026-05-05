@@ -109,6 +109,19 @@ export interface AppInfo {
   platform: NodeJS.Platform;
 }
 
+export interface AuthState {
+  status: 'unauthenticated' | 'authenticated';
+  user: { id: string; email: string | null } | null;
+}
+
+export interface PersistedSession {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number | null;
+  user_id: string;
+  email: string | null;
+}
+
 export interface ProjectInput {
   name: string;
   localPath: string;
