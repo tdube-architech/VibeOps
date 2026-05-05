@@ -43,6 +43,24 @@ jobs:
         shell: bash
         run: echo "RELEASE_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
+      - name: Write .env from secrets
+        shell: bash
+        env:
+          SUPABASE_URL: ${{ secrets.VIBEOPS_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VIBEOPS_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::VIBEOPS_SUPABASE_URL and VIBEOPS_SUPABASE_ANON_KEY repo secrets are required"
+            exit 1
+          fi
+          cat > .env <<EOF
+          MAIN_VITE_SUPABASE_URL=$SUPABASE_URL
+          MAIN_VITE_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          RENDERER_VITE_SUPABASE_URL=$SUPABASE_URL
+          RENDERER_VITE_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          EOF
+          echo "wrote .env (URL: $SUPABASE_URL)"
+
       - name: Typecheck
         run: pnpm build:typecheck
 
