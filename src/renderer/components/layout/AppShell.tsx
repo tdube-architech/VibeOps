@@ -51,13 +51,22 @@ export function AppShell() {
   }, [qc]);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-6">
-          <Outlet />
-        </main>
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-black">
+      <div
+        className="flex h-8 shrink-0 items-center justify-between bg-black px-3 text-white"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <div className="text-xs font-semibold tracking-wide">VibeOps</div>
+        <div style={{ width: 138 }} />
+      </div>
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex flex-1 flex-col">
+          <Topbar />
+          <main className="flex-1 overflow-y-auto p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
       <UpdatePrompt />
     </div>

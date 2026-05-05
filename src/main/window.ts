@@ -1,10 +1,12 @@
-import { BrowserWindow, screen, shell } from 'electron';
+import { BrowserWindow, nativeTheme, screen, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function createMainWindow(): BrowserWindow {
+  nativeTheme.themeSource = 'dark';
+
   const display = screen.getPrimaryDisplay().workAreaSize;
   const targetWidth = Math.min(Math.max(1440, Math.round(display.width * 0.9)), display.width);
   const targetHeight = Math.min(Math.max(900, Math.round(display.height * 0.9)), display.height);
@@ -14,10 +16,16 @@ export function createMainWindow(): BrowserWindow {
     height: targetHeight,
     minWidth: 1080,
     minHeight: 720,
-    backgroundColor: '#0a0a0b',
+    backgroundColor: '#000000',
     show: false,
     autoHideMenuBar: true,
     title: 'VibeOps',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#000000',
+      symbolColor: '#ffffff',
+      height: 32
+    },
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
