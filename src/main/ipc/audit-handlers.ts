@@ -26,8 +26,15 @@ export interface AuditContext {
 
 export function registerAuditHandlers(ctx: AuditContext): void {
   ipcMain.handle(IpcChannels.auditStart,
-    async (_e, payload: { projectId: string; auditType?: AuditType }): Promise<Result<AuditRun>> => {
+    async (_e, payload: { projectId: string; auditType?: AuditType; localPath?: string; name?: string }): Promise<Result<AuditRun>> => {
       try {
+        if (payload.localPath && payload.name) {
+          ctx.projectsService.upsertStub({
+            id: payload.projectId,
+            name: payload.name,
+            localPath: payload.localPath
+          });
+        }
         const args: { projectId: string; auditType?: AuditType } = { projectId: payload.projectId };
         if (payload.auditType) args.auditType = payload.auditType;
         return ok(await runAudit({

@@ -54,8 +54,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.projectsCheckPath, p))
   },
   scans: {
-    start: (projectId: string): Promise<Scan> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.scanStart, projectId)),
+    start: (projectId: string, ctx?: { localPath: string; name: string }): Promise<Scan> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.scanStart, ctx ? { projectId, ...ctx } : projectId)),
     cancel: (scanId: string): Promise<true> =>
       unwrap(ipcRenderer.invoke(IpcChannels.scanCancel, scanId)),
     get: (scanId: string): Promise<Scan | null> =>
@@ -75,8 +75,8 @@ export const api = {
     }
   },
   memory: {
-    generateDraft: (projectId: string, mode: 'fresh' | 'merge-with-disk' | 'merge-with-version' = 'fresh', version?: number): Promise<MemoryDraft> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.memoryGenerateDraft, { projectId, mode, version })),
+    generateDraft: (projectId: string, mode: 'fresh' | 'merge-with-disk' | 'merge-with-version' = 'fresh', version?: number, ctx?: { localPath: string; name: string }): Promise<MemoryDraft> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryGenerateDraft, { projectId, mode, version, ...(ctx ?? {}) })),
     listVersions: (projectId: string): Promise<Memory[]> =>
       unwrap(ipcRenderer.invoke(IpcChannels.memoryListVersions, projectId)),
     getLatest: (projectId: string): Promise<Memory | null> =>
@@ -85,8 +85,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.memoryGetVersion, memoryId)),
     saveDraft: (projectId: string, content: string, source: MemorySource = 'user-edited'): Promise<Memory> =>
       unwrap(ipcRenderer.invoke(IpcChannels.memorySaveDraft, { projectId, content, source })),
-    writeFile: (projectId: string, memoryId: string): Promise<MemoryWriteResult> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.memoryWriteFile, { projectId, memoryId })),
+    writeFile: (projectId: string, memoryId: string, ctx?: { localPath: string; name: string }): Promise<MemoryWriteResult> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.memoryWriteFile, { projectId, memoryId, ...(ctx ?? {}) })),
     fileStatus: (projectId: string): Promise<MemoryFileStatus> =>
       unwrap(ipcRenderer.invoke(IpcChannels.memoryFileStatus, projectId)),
     readFile: (projectId: string): Promise<string | null> =>
@@ -110,8 +110,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.aiGenerateProjectSummary, projectId))
   },
   audits: {
-    start: (projectId: string, auditType?: AuditType): Promise<AuditRun> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.auditStart, { projectId, auditType })),
+    start: (projectId: string, auditType?: AuditType, ctx?: { localPath: string; name: string }): Promise<AuditRun> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.auditStart, { projectId, auditType, ...(ctx ?? {}) })),
     list: (projectId: string): Promise<AuditRun[]> =>
       unwrap(ipcRenderer.invoke(IpcChannels.auditList, projectId)),
     get: (auditId: string): Promise<AuditRun | null> =>
@@ -179,8 +179,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.taskRemove, id))
   },
   pipeline: {
-    run: (projectId: string, opts: AutoPipelineOpts = {}): Promise<true> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.pipelineRun, { projectId, ...opts })),
+    run: (projectId: string, opts: AutoPipelineOpts = {}, ctx?: { localPath: string; name: string }): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.pipelineRun, { projectId, ...opts, ...(ctx ?? {}) })),
     onProgress: (cb: (e: PipelineEvent) => void): (() => void) => {
       const handler = (_e: unknown, evt: PipelineEvent) => cb(evt);
       ipcRenderer.on(IpcChannels.pipelineProgress, handler);
@@ -192,6 +192,13 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.projectsGitStatus, projectId)),
     gitInfo: (projectId: string): Promise<GitInfo> =>
       unwrap(ipcRenderer.invoke(IpcChannels.projectsGitInfo, projectId))
+  },
+  migrate: {
+    status: (): Promise<{ unmigrated: Project[]; alreadyMigrated: number; skippedAt: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.migrateStatus)),
+    mark: (localId: string, serverId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.migrateMark, { localId, serverId })),
+    skip: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.migrateSkip))
   },
   rulePack: {
     info: (): Promise<RulePackManifest | null> =>
@@ -213,6 +220,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.authSaveSession, session)),
     signInGitHub: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.authSignInGitHub)),
     signOut: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.authSignOut)),
+    openExternal: (url: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.authOpenExternal, url)),
     onState: (cb: (s: AuthState) => void): (() => void) => {
       const handler = (_e: unknown, s: AuthState) => cb(s);
       ipcRenderer.on(IpcChannels.authState, handler);

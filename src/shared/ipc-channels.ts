@@ -93,7 +93,12 @@ export const IpcChannels = {
   authSaveSession: 'auth:saveSession',
   authSignInGitHub: 'auth:signInGitHub',
   authSignOut: 'auth:signOut',
-  authDeepLink: 'auth:deepLink'
+  authDeepLink: 'auth:deepLink',
+  authOpenExternal: 'auth:openExternal',
+
+  migrateStatus: 'migrate:status',
+  migrateMark: 'migrate:mark',
+  migrateSkip: 'migrate:skip'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

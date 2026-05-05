@@ -81,6 +81,40 @@ export class ProjectsRepo {
     return row ? rowToProject(row) : null;
   }
 
+  upsertStub(args: { id: string; name: string; localPath: string; workspaceId?: string }): Project {
+    const existing = this.byId(args.id);
+    if (existing) {
+      // refresh local path in case user re-set it on this machine
+      if (existing.localPath !== args.localPath) {
+        this.db.update(projects)
+          .set({ localPath: args.localPath, updatedAt: new Date().toISOString() })
+          .where(eq(projects.id, args.id)).run();
+        return this.byId(args.id)!;
+      }
+      return existing;
+    }
+    const now = new Date().toISOString();
+    const slug = `${args.id.slice(0, 8)}-${args.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24)}`;
+    this.db.insert(projects).values({
+      id: args.id,
+      name: args.name,
+      slug,
+      description: null,
+      localPath: args.localPath,
+      repoUrl: null,
+      category: null,
+      status: 'active',
+      primaryStack: null,
+      tags: '[]',
+      createdAt: now,
+      updatedAt: now,
+      lastScannedAt: null,
+      lastAuditedAt: null,
+      workspaceId: args.workspaceId ?? 'ws_local'
+    }).run();
+    return this.byId(args.id)!;
+  }
+
   byPath(localPath: string): Project | null {
     const row = this.db.select().from(projects).where(eq(projects.localPath, localPath)).get();
     return row ? rowToProject(row) : null;

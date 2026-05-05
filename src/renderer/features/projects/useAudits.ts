@@ -25,11 +25,12 @@ export function useLatestAudit(projectId: string | undefined) {
 export function useStartAudit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (projectId: string) => api.audits.start(projectId),
-    onSuccess: (_run, projectId) => {
-      qc.invalidateQueries({ queryKey: auditsKey(projectId) });
-      qc.invalidateQueries({ queryKey: latestKey(projectId) });
-      qc.invalidateQueries({ queryKey: promptsKey(projectId) });
+    mutationFn: (project: { id: string; localPath: string; name: string }) =>
+      api.audits.start(project.id, undefined, { localPath: project.localPath, name: project.name }),
+    onSuccess: (_run, project) => {
+      qc.invalidateQueries({ queryKey: auditsKey(project.id) });
+      qc.invalidateQueries({ queryKey: latestKey(project.id) });
+      qc.invalidateQueries({ queryKey: promptsKey(project.id) });
       qc.invalidateQueries({ queryKey: ['projects'] });
     }
   });

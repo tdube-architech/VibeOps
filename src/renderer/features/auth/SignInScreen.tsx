@@ -23,7 +23,15 @@ export function SignInScreen() {
   }
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-background p-6">
+    <div className="flex h-screen w-screen flex-col bg-black">
+      <div
+        className="flex h-8 shrink-0 items-center justify-between bg-black px-3 text-white"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <div className="text-xs font-semibold tracking-wide">VibeOps</div>
+        <div style={{ width: 138 }} />
+      </div>
+      <div className="flex flex-1 items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Sign in to VibeOps</CardTitle>
@@ -40,7 +48,11 @@ export function SignInScreen() {
             className="w-full"
             variant="outline"
             disabled={!configured}
-            onClick={() => { void signInWithGitHub(); }}
+            onClick={async () => {
+              setErr(null);
+              const { error } = await signInWithGitHub();
+              if (error) setErr(error);
+            }}
           >
             <LogIn className="h-4 w-4" /> Continue with GitHub
           </Button>
@@ -72,6 +84,7 @@ export function SignInScreen() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

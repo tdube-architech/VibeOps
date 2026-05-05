@@ -39,7 +39,9 @@ export function ProjectMemoryTab({ project }: { project: Project }) {
     try {
       const d = await generate.mutateAsync({
         projectId: project.id,
-        mode: refresh ? 'merge-with-disk' : 'fresh'
+        mode: refresh ? 'merge-with-disk' : 'fresh',
+        localPath: project.localPath,
+        name: project.name
       });
       setDraft(d.content);
       setDraftDirty(true);
@@ -75,7 +77,7 @@ export function ProjectMemoryTab({ project }: { project: Project }) {
     if (!pendingMemoryId) return;
     setWriteOpen(false);
     try {
-      await write.mutateAsync({ projectId: project.id, memoryId: pendingMemoryId });
+      await write.mutateAsync({ projectId: project.id, memoryId: pendingMemoryId, localPath: project.localPath, name: project.name });
     } catch (e) { setError((e as Error).message); }
   }
 

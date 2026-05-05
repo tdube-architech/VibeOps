@@ -9,14 +9,23 @@ export function useAuth() {
 
   useEffect(() => {
     let mounted = true;
-    api.auth.getState().then((s) => {
-      if (mounted) {
-        setState(s);
-        setLoading(false);
+    (async () => {
+      try {
+        const stored = await api.auth.getSession();
+        if (stored) {
+          await getSupabase().auth.setSession({
+            access_token: stored.access_token,
+            refresh_token: stored.refresh_token
+          });
+        }
+        const s = await api.auth.getState();
+        if (mounted) setState(s);
+      } catch {
+        // ignore
+      } finally {
+        if (mounted) setLoading(false);
       }
-    }).catch(() => {
-      if (mounted) setLoading(false);
-    });
+    })();
     const off = api.auth.onState((s) => setState(s));
     return () => { mounted = false; off(); };
   }, []);
@@ -24,8 +33,18 @@ export function useAuth() {
   return { state, loading };
 }
 
-export async function signInWithGitHub(): Promise<void> {
-  await api.auth.signInGitHub();
+export async function signInWithGitHub(): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: 'vibeops://auth/callback',
+      skipBrowserRedirect: true
+    }
+  });
+  if (error || !data?.url) return { error: error?.message ?? 'No OAuth URL returned' };
+  await api.auth.openExternal(data.url);
+  return { error: null };
 }
 
 export async function signInWithMagicLink(email: string): Promise<{ error: string | null }> {

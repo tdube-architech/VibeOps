@@ -24,3 +24,4 @@ export { registerTaskHandlers } from './task-handlers';
 export { registerPipelineHandlers } from './pipeline-handlers';
 export { registerRulePackHandlers } from './rule-pack-handlers';
 export { registerAuthHandlers } from './auth-handlers';
+export { registerMigrateHandlers } from './migrate-handlers';

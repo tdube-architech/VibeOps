@@ -70,7 +70,7 @@ export function AddProjectButton() {
       setOpen(false);
       reset();
       toast.success(`Added ${project.name}`, 'Auto-pipeline starting…');
-      void api.pipeline.run(project.id, {}).catch((e) => {
+      void api.pipeline.run(project.id, {}, { localPath: project.localPath, name: project.name }).catch((e) => {
         const msg = e instanceof Error ? e.message : String(e);
         toast.error('Failed to start auto-pipeline', msg);
       });

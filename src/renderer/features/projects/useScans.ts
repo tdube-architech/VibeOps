@@ -44,11 +44,12 @@ export function useScanEnvVars(scanId: string | undefined) {
 export function useStartScan() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (projectId: string) => api.scans.start(projectId),
-    onSuccess: (_scan, projectId) => {
-      qc.invalidateQueries({ queryKey: scansKey(projectId) });
-      qc.invalidateQueries({ queryKey: latestKey(projectId) });
-      qc.invalidateQueries({ queryKey: ['projects', projectId] });
+    mutationFn: (project: { id: string; localPath: string; name: string }) =>
+      api.scans.start(project.id, { localPath: project.localPath, name: project.name }),
+    onSuccess: (_scan, project) => {
+      qc.invalidateQueries({ queryKey: scansKey(project.id) });
+      qc.invalidateQueries({ queryKey: latestKey(project.id) });
+      qc.invalidateQueries({ queryKey: ['projects', project.id] });
       qc.invalidateQueries({ queryKey: ['projects'] });
     }
   });

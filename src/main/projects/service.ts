@@ -86,6 +86,10 @@ export class ProjectsService {
     return this.repo.byPath(path.resolve(localPath));
   }
 
+  upsertStub(args: { id: string; name: string; localPath: string }): Project {
+    return this.repo.upsertStub(args);
+  }
+
   markScanned(id: string): void {
     this.repo.markScanned(id, new Date().toISOString());
   }

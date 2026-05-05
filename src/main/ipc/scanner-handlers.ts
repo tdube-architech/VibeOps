@@ -25,18 +25,28 @@ const fail = (e: unknown): Result<never> => ({
 const activeAborts = new Map<string, AbortController>();
 
 export function registerScannerHandlers(ctx: ScannerContext): void {
-  ipcMain.handle(IpcChannels.scanStart, async (_e, projectId: string): Promise<Result<Scan>> => {
-    try {
-      const controller = new AbortController();
-      const emitter = new ProgressEmitter('', projectId, ctx.getMainWindow);
-      const { scan } = await runScan(
-        { scansRepo: ctx.scansRepo, projectsService: ctx.projectsService, logger: ctx.logger },
-        { projectId, emitter, signal: controller.signal }
-      );
-      activeAborts.delete(scan.id);
-      return ok(scan);
-    } catch (e) { return fail(e); }
-  });
+  ipcMain.handle(IpcChannels.scanStart,
+    async (_e, payload: string | { projectId: string; localPath?: string; name?: string }): Promise<Result<Scan>> => {
+      try {
+        const projectId = typeof payload === 'string' ? payload : payload.projectId;
+        if (typeof payload !== 'string' && payload.localPath && payload.name) {
+          ctx.projectsService.upsertStub({
+            id: payload.projectId,
+            name: payload.name,
+            localPath: payload.localPath
+          });
+        }
+        const controller = new AbortController();
+        const emitter = new ProgressEmitter('', projectId, ctx.getMainWindow);
+        const { scan } = await runScan(
+          { scansRepo: ctx.scansRepo, projectsService: ctx.projectsService, logger: ctx.logger },
+          { projectId, emitter, signal: controller.signal }
+        );
+        activeAborts.delete(scan.id);
+        return ok(scan);
+      } catch (e) { return fail(e); }
+    }
+  );
 
   ipcMain.handle(IpcChannels.scanCancel, (_e, scanId: string): Result<true> => {
     activeAborts.get(scanId)?.abort();

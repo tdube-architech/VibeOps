@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, shell } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';
 import type { AuthService, AuthState } from '@main/auth/service';
 import type { PersistedSession } from '@main/auth/store';
@@ -29,5 +29,16 @@ export function registerAuthHandlers(auth: AuthService): void {
 
   ipcMain.handle(IpcChannels.authSignOut, (): Result<true> => {
     try { auth.signOut(); return ok(true); } catch (e) { return fail(e); }
+  });
+
+  ipcMain.handle(IpcChannels.authOpenExternal, async (_e, url: string): Promise<Result<true>> => {
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+        throw new Error(`refused to open URL with protocol ${u.protocol}`);
+      }
+      await shell.openExternal(url);
+      return ok(true);
+    } catch (e) { return fail(e); }
   });
 }

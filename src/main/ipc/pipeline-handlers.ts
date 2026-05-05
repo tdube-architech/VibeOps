@@ -11,9 +11,15 @@ const fail = (e: unknown): Result<never> => ({
 
 export function registerPipelineHandlers(deps: PipelineDeps): void {
   ipcMain.handle(IpcChannels.pipelineRun,
-    async (_e, payload: { projectId: string } & AutoPipelineOpts): Promise<Result<true>> => {
+    async (_e, payload: { projectId: string; localPath?: string; name?: string } & AutoPipelineOpts): Promise<Result<true>> => {
       try {
-        // Fire-and-forget; results stream via pipelineProgress events
+        if (payload.localPath && payload.name) {
+          deps.projectsService.upsertStub({
+            id: payload.projectId,
+            name: payload.name,
+            localPath: payload.localPath
+          });
+        }
         void runAutoPipeline(deps, payload);
         return ok(true);
       } catch (e) { return fail(e); }

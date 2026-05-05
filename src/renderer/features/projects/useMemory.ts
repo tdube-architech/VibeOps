@@ -32,8 +32,15 @@ export function useMemoryFileStatus(projectId: string | undefined) {
 
 export function useGenerateDraft() {
   return useMutation({
-    mutationFn: ({ projectId, mode, version }: { projectId: string; mode?: 'fresh' | 'merge-with-disk' | 'merge-with-version'; version?: number }) =>
-      api.memory.generateDraft(projectId, mode ?? 'fresh', version)
+    mutationFn: ({ projectId, mode, version, localPath, name }: {
+      projectId: string;
+      mode?: 'fresh' | 'merge-with-disk' | 'merge-with-version';
+      version?: number;
+      localPath?: string;
+      name?: string;
+    }) =>
+      api.memory.generateDraft(projectId, mode ?? 'fresh', version,
+        (localPath && name) ? { localPath, name } : undefined)
   });
 }
 
@@ -52,8 +59,14 @@ export function useSaveDraft() {
 export function useWriteMemoryFile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ projectId, memoryId }: { projectId: string; memoryId: string }) =>
-      api.memory.writeFile(projectId, memoryId),
+    mutationFn: ({ projectId, memoryId, localPath, name }: {
+      projectId: string;
+      memoryId: string;
+      localPath?: string;
+      name?: string;
+    }) =>
+      api.memory.writeFile(projectId, memoryId,
+        (localPath && name) ? { localPath, name } : undefined),
     onSuccess: (_r, vars) => {
       qc.invalidateQueries({ queryKey: versionsKey(vars.projectId) });
       qc.invalidateQueries({ queryKey: latestKey(vars.projectId) });

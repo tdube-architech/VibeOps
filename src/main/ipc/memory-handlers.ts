@@ -4,11 +4,20 @@ import type { Logger } from 'pino';
 import { IpcChannels } from '@shared/ipc-channels';
 import type { Memory, MemoryDraft, MemoryFileStatus, MemoryWriteResult, MemorySource } from '@shared/types';
 import type { MemoryService } from '@main/memory/service';
+import type { ProjectsService } from '@main/projects/service';
 
 export interface MemoryContext {
   service: MemoryService;
   logger: Logger;
   resolveProjectPath: (projectId: string) => string | null;
+  projectsService: ProjectsService;
+}
+
+interface MaybeStub { projectId: string; localPath?: string; name?: string }
+function maybeUpsert(svc: ProjectsService, p: MaybeStub): void {
+  if (p.localPath && p.name) {
+    svc.upsertStub({ id: p.projectId, name: p.name, localPath: p.localPath });
+  }
 }
 
 export interface IpcError { code: string; message: string }
@@ -20,8 +29,9 @@ const fail = (e: unknown): Result<never> => ({
 
 export function registerMemoryHandlers(ctx: MemoryContext): void {
   ipcMain.handle(IpcChannels.memoryGenerateDraft,
-    async (_e, payload: { projectId: string; mode?: 'fresh' | 'merge-with-disk' | 'merge-with-version'; version?: number }): Promise<Result<MemoryDraft>> => {
+    async (_e, payload: MaybeStub & { mode?: 'fresh' | 'merge-with-disk' | 'merge-with-version'; version?: number }): Promise<Result<MemoryDraft>> => {
       try {
+        maybeUpsert(ctx.projectsService, payload);
         const opts: { mode?: 'fresh' | 'merge-with-disk' | 'merge-with-version'; mergeFromVersion?: number } = {
           mode: payload.mode ?? 'fresh'
         };
@@ -52,8 +62,11 @@ export function registerMemoryHandlers(ctx: MemoryContext): void {
   );
 
   ipcMain.handle(IpcChannels.memoryWriteFile,
-    async (_e, payload: { projectId: string; memoryId: string }): Promise<Result<MemoryWriteResult>> => {
-      try { return ok(await ctx.service.writeFile(payload)); } catch (e) { return fail(e); }
+    async (_e, payload: MaybeStub & { memoryId: string }): Promise<Result<MemoryWriteResult>> => {
+      try {
+        maybeUpsert(ctx.projectsService, payload);
+        return ok(await ctx.service.writeFile({ projectId: payload.projectId, memoryId: payload.memoryId }));
+      } catch (e) { return fail(e); }
     }
   );
 

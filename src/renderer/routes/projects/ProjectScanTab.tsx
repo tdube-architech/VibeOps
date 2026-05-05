@@ -48,7 +48,7 @@ export function ProjectScanTab({ project }: { project: Project }) {
             <CardTitle>Project Scan</CardTitle>
             <CardDescription>Read-only walk of the project tree. No files are modified.</CardDescription>
           </div>
-          <Button onClick={() => start.mutate(project.id)} disabled={start.isPending}>
+          <Button onClick={() => start.mutate({ id: project.id, localPath: project.localPath, name: project.name })} disabled={start.isPending}>
             <Play className="h-4 w-4" /> {start.isPending ? 'Scanning…' : 'Run Scan'}
           </Button>
         </CardHeader>

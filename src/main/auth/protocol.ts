@@ -28,12 +28,6 @@ function extractDeepLinkFromArgv(argv: readonly string[]): string | null {
 export function setupProtocolHandler(deps: ProtocolDeps): void {
   registerScheme();
 
-  const gotLock = app.requestSingleInstanceLock();
-  if (!gotLock) {
-    app.quit();
-    return;
-  }
-
   app.on('second-instance', (_event, argv) => {
     const win = deps.getMainWindow();
     if (win && !win.isDestroyed()) {

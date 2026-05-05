@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { UpdatePrompt } from '@/features/update/UpdatePrompt';
+import { MigrationGate } from '@/features/migrate/MigrationGate';
+import { useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import type { PipelineEvent, PipelineStage } from '@shared/pipeline-events';
@@ -21,6 +23,7 @@ const STAGE_LABEL: Record<PipelineStage, string> = {
 
 export function AppShell() {
   const qc = useQueryClient();
+  useEnsureDefaultWorkspace();
 
   useEffect(() => {
     return api.pipeline.onProgress((evt: PipelineEvent) => {
@@ -69,6 +72,7 @@ export function AppShell() {
         </div>
       </div>
       <UpdatePrompt />
+      <MigrationGate />
     </div>
   );
 }

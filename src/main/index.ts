@@ -17,7 +17,8 @@ import {
   registerTaskHandlers,
   registerPipelineHandlers,
   registerRulePackHandlers,
-  registerAuthHandlers
+  registerAuthHandlers,
+  registerMigrateHandlers
 } from './ipc/handlers';
 import { AuthService } from './auth/service';
 import { setupProtocolHandler } from './auth/protocol';
@@ -46,14 +47,22 @@ import { TasksService } from './tasks/service';
 
 let mainWindow: BrowserWindow | null = null;
 
+const SINGLE_INSTANCE_LOCK = app.requestSingleInstanceLock();
+if (!SINGLE_INSTANCE_LOCK) {
+  app.exit(0);
+}
+
 async function bootstrap(): Promise<void> {
+  if (!SINGLE_INSTANCE_LOCK) return;
   await app.whenReady();
 
   const paths = resolveAppPaths();
   const log = getLogger(paths.logsDir);
   log.info({ root: paths.root }, 'app data root resolved');
 
-  const supabaseUrl = process.env.MAIN_VITE_SUPABASE_URL ?? '';
+  const supabaseUrl = (import.meta.env.MAIN_VITE_SUPABASE_URL as string | undefined)
+    ?? process.env.MAIN_VITE_SUPABASE_URL ?? '';
+  log.info({ supabaseConfigured: Boolean(supabaseUrl) }, 'auth bootstrap');
   const auth = new AuthService({
     appDataRoot: paths.root,
     supabaseUrl,
@@ -106,7 +115,7 @@ async function bootstrap(): Promise<void> {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:5173 http://localhost:5173"
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://avatars.githubusercontent.com; connect-src 'self' ws://localhost:5173 http://localhost:5173 https://*.supabase.co wss://*.supabase.co"
         ]
       }
     });
@@ -123,7 +132,8 @@ async function bootstrap(): Promise<void> {
   registerMemoryHandlers({
     service: memoryService,
     logger: log,
-    resolveProjectPath: (id) => projectsService.byId(id)?.localPath ?? null
+    resolveProjectPath: (id) => projectsService.byId(id)?.localPath ?? null,
+    projectsService
   });
   registerSettingsHandlers(settingsService);
   registerAIHandlers({
@@ -159,6 +169,7 @@ async function bootstrap(): Promise<void> {
   });
   registerRulePackHandlers({ appDataRoot: paths.root, logger: log });
   registerAuthHandlers(auth);
+  registerMigrateHandlers({ appDataRoot: paths.root, projectsService });
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });
