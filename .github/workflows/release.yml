@@ -46,7 +46,10 @@ jobs:
       - name: Typecheck
         run: pnpm build:typecheck
 
-      - name: Build and publish
+      - name: Compile main / preload / renderer
+        run: pnpm build
+
+      - name: Package and publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm exec electron-builder --win --publish always
