@@ -143,7 +143,7 @@ export function registerDataHandlers(ctx: DataContext): void {
           criticalFindings
         },
         highestRiskProject: highestRisk,
-        recentFindings: recent.slice(0, 20)
+        recentFindings: recent.slice(0, 500)
       });
     } catch (e) { return fail(e); }
   });

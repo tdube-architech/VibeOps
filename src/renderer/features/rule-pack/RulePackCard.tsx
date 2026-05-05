@@ -65,26 +65,32 @@ export function RulePackCard() {
           <div className="text-muted-foreground">Loading…</div>
         ) : manifest ? (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-xs uppercase text-muted-foreground">Pack</div>
-              <div className="col-span-2">
-                <code className="text-xs">{manifest.packId}</code>{' '}
-                <Badge variant={manifest.source === 'remote' ? 'success' : 'secondary'}>
-                  {manifest.source}
-                </Badge>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-xs uppercase text-muted-foreground">Pack</div>
+                <div className="flex flex-1 items-center gap-2">
+                  <code className="text-xs">{String(manifest.packId)}</code>
+                  <Badge variant={manifest.source === 'remote' ? 'success' : 'secondary'}>
+                    {String(manifest.source)}
+                  </Badge>
+                </div>
               </div>
-
-              <div className="text-xs uppercase text-muted-foreground">Version</div>
-              <div className="col-span-2">{manifest.packVersion}</div>
-
-              <div className="text-xs uppercase text-muted-foreground">Rules</div>
-              <div className="col-span-2">{manifest.ruleCount}</div>
-
-              <div className="text-xs uppercase text-muted-foreground">Published</div>
-              <div className="col-span-2">{formatTimestamp(manifest.publishedAt)}</div>
-
-              <div className="text-xs uppercase text-muted-foreground">Last Checked</div>
-              <div className="col-span-2">{formatTimestamp(data?.lastCheckedAt ?? null)}</div>
+              <div className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-xs uppercase text-muted-foreground">Version</div>
+                <div className="flex-1 font-mono text-sm">{String(manifest.packVersion ?? '—')}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-xs uppercase text-muted-foreground">Rules</div>
+                <div className="flex-1 text-sm">{String(manifest.ruleCount ?? '—')}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-xs uppercase text-muted-foreground">Published</div>
+                <div className="flex-1 text-sm">{formatTimestamp(manifest.publishedAt ?? null)}</div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-32 shrink-0 text-xs uppercase text-muted-foreground">Last Checked</div>
+                <div className="flex-1 text-sm">{formatTimestamp(data?.lastCheckedAt ?? null)}</div>
+              </div>
             </div>
             {manifest.description && (
               <div className="text-xs text-muted-foreground">{manifest.description}</div>

@@ -19,31 +19,40 @@ export function AuditsRoute() {
         </p>
       </div>
 
-      {summary?.recentFindings && summary.recentFindings.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Critical/High Findings</CardTitle>
-            <CardDescription>Across all active projects in this workspace.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {summary.recentFindings.slice(0, 10).map((f) => (
-                <Link
-                  key={`${f.auditRunId}-${f.title}`}
-                  to={`/projects/${f.projectId}`}
-                  className="flex items-center justify-between rounded-md border border-border px-3 py-2 hover:bg-secondary/40"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium text-sm truncate">{f.title}</div>
-                    <div className="text-xs text-muted-foreground">{f.projectName}</div>
-                  </div>
-                  <Badge variant={f.severity === 'critical' ? 'destructive' : 'warning'}>{f.severity}</Badge>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {summary?.recentFindings && summary.recentFindings.length > 0 && (() => {
+        const all = summary.recentFindings;
+        const critCount = all.filter((f) => f.severity === 'critical').length;
+        const highCount = all.filter((f) => f.severity === 'high').length;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">All Critical/High Findings</CardTitle>
+              <CardDescription>
+                {critCount} critical, {highCount} high — {all.length} total across all active projects.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                {all.map((f) => (
+                  <Link
+                    key={`${f.auditRunId}-${f.title}`}
+                    to={`/projects/${f.projectId}`}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 hover:bg-secondary/40"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm truncate">{f.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {f.projectName} · {new Date(f.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <Badge variant={f.severity === 'critical' ? 'destructive' : 'warning'}>{f.severity}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card>
         <CardHeader>
