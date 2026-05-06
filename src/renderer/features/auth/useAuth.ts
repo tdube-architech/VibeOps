@@ -12,22 +12,65 @@ export function useAuth() {
     (async () => {
       try {
         const stored = await api.auth.getSession();
+        const nowSec = Math.floor(Date.now() / 1000);
+        const isExpired = stored?.expires_at !== null && stored?.expires_at !== undefined
+          && stored.expires_at <= nowSec - 30;
+
+        if (stored && isExpired) {
+          console.warn('[auth] stored access_token expired; signing out');
+          await api.auth.signOut();
+          try { await getSupabase().auth.signOut(); } catch { /* ignore */ }
+          if (mounted) setState({ status: 'unauthenticated', user: null });
+          return;
+        }
+
         if (stored) {
-          await getSupabase().auth.setSession({
+          const { error } = await getSupabase().auth.setSession({
             access_token: stored.access_token,
             refresh_token: stored.refresh_token
           });
+          if (error) {
+            console.warn('[auth] stored session invalid; clearing', error.message);
+            await api.auth.signOut();
+            try { await getSupabase().auth.signOut(); } catch { /* ignore */ }
+            if (mounted) setState({ status: 'unauthenticated', user: null });
+            return;
+          }
         }
         const s = await api.auth.getState();
         if (mounted) setState(s);
-      } catch {
-        // ignore
+      } catch (e) {
+        console.warn('[auth] restore failed', e);
+        if (mounted) setState({ status: 'unauthenticated', user: null });
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
+    const supabase = getSupabase();
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.info('[auth] supabase event', event);
+      if (event === 'TOKEN_REFRESHED' && session) {
+        await api.auth.saveSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+          expires_at: session.expires_at ?? null,
+          user_id: session.user.id,
+          email: session.user.email ?? null
+        }).catch(() => undefined);
+      }
+      if (event === 'SIGNED_OUT') {
+        await api.auth.signOut().catch(() => undefined);
+        if (mounted) setState({ status: 'unauthenticated', user: null });
+      }
+    });
+
     const off = api.auth.onState((s) => setState(s));
-    return () => { mounted = false; off(); };
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+      off();
+    };
   }, []);
 
   return { state, loading };

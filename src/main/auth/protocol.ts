@@ -25,8 +25,42 @@ function extractDeepLinkFromArgv(argv: readonly string[]): string | null {
   return null;
 }
 
+function waitForRenderer(getWin: () => BrowserWindow | null): Promise<BrowserWindow> {
+  return new Promise((resolve) => {
+    const tryNow = () => {
+      const win = getWin();
+      if (win && !win.isDestroyed() && !win.webContents.isLoading()) {
+        resolve(win);
+        return true;
+      }
+      return false;
+    };
+    if (tryNow()) return;
+    const interval = setInterval(() => {
+      const win = getWin();
+      if (!win || win.isDestroyed()) return;
+      win.webContents.once('did-finish-load', () => {
+        clearInterval(interval);
+        resolve(win);
+      });
+      if (!win.webContents.isLoading()) {
+        clearInterval(interval);
+        resolve(win);
+      } else {
+        clearInterval(interval);
+      }
+    }, 200);
+  });
+}
+
 export function setupProtocolHandler(deps: ProtocolDeps): void {
   registerScheme();
+
+  const dispatch = async (url: string): Promise<void> => {
+    await waitForRenderer(deps.getMainWindow);
+    deps.logger.info({ url }, 'forwarding deep link');
+    deps.onDeepLink(url);
+  };
 
   app.on('second-instance', (_event, argv) => {
     const win = deps.getMainWindow();
@@ -35,16 +69,14 @@ export function setupProtocolHandler(deps: ProtocolDeps): void {
       win.focus();
     }
     const url = extractDeepLinkFromArgv(argv);
-    if (url) deps.onDeepLink(url);
+    if (url) void dispatch(url);
   });
 
   app.on('open-url', (event, url) => {
     event.preventDefault();
-    if (url.startsWith(`${PROTOCOL}://`)) deps.onDeepLink(url);
+    if (url.startsWith(`${PROTOCOL}://`)) void dispatch(url);
   });
 
   const initial = extractDeepLinkFromArgv(process.argv.slice(1));
-  if (initial) {
-    setTimeout(() => deps.onDeepLink(initial), 1500);
-  }
+  if (initial) void dispatch(initial);
 }
