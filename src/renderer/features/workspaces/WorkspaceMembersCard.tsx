@@ -50,8 +50,8 @@ export function WorkspaceMembersCard() {
   });
 
   const invite = useMutation({
-    mutationFn: ({ email, role }: { email: string; role: MemberRole }) =>
-      inviteMember(wsId!, email, role),
+    mutationFn: ({ target, role }: { target: { email?: string; githubUsername?: string }; role: MemberRole }) =>
+      inviteMember(wsId!, target, role),
     onSuccess: (inv) => {
       setLatestInviteUrl(buildAcceptInviteUrl(inv.token));
       setInviteEmail('');
@@ -62,11 +62,25 @@ export function WorkspaceMembersCard() {
       const msg = (e as Error).message;
       if (/WORKSPACE_MEMBER_LIMIT|P0001/.test(msg)) {
         toast.error('Member cap reached', 'Free workspaces allow 5 members. Upgrade or start trial in Settings → Workspace → Billing.');
+      } else if (/NOT_A_VIBEOPS_USER|P0010/.test(msg)) {
+        toast.error('Not a VibeOps user yet', 'Ask them to sign in to VibeOps first, then invite again.');
       } else {
         toast.error('Invite failed', msg);
       }
     }
   });
+
+  function fireInvite(): void {
+    const raw = inviteEmail.trim();
+    if (!raw) return;
+    // Allow either an email or a @github-username (or just a username).
+    if (raw.includes('@') && raw.includes('.')) {
+      invite.mutate({ target: { email: raw }, role: inviteRole });
+    } else {
+      const handle = raw.replace(/^@/, '');
+      invite.mutate({ target: { githubUsername: handle }, role: inviteRole });
+    }
+  }
   const revoke = useMutation({
     mutationFn: (id: string) => revokeInvitation(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: INVITES_KEY(wsId!) })
@@ -199,14 +213,12 @@ export function WorkspaceMembersCard() {
             <div className="text-xs uppercase text-muted-foreground">Invite</div>
             <div className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
               <Input
-                type="email"
-                placeholder="teammate@example.com"
+                type="text"
+                placeholder="teammate@example.com or @github-handle"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && inviteEmail.trim()) {
-                    invite.mutate({ email: inviteEmail, role: inviteRole });
-                  }
+                  if (e.key === 'Enter' && inviteEmail.trim()) fireInvite();
                 }}
               />
               <select
@@ -219,7 +231,7 @@ export function WorkspaceMembersCard() {
                 {canManageRoles && <option value="owner">owner</option>}
               </select>
               <Button
-                onClick={() => invite.mutate({ email: inviteEmail, role: inviteRole })}
+                onClick={fireInvite}
                 disabled={invite.isPending || !inviteEmail.trim()}
               >
                 <UserPlus className="h-4 w-4" /> Invite

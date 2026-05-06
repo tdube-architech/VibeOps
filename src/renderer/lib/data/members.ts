@@ -73,12 +73,15 @@ export async function listPendingInvitations(workspaceId: string): Promise<Pendi
 }
 
 export async function inviteMember(
-  workspaceId: string, email: string, role: MemberRole = 'editor'
+  workspaceId: string,
+  target: { email?: string; githubUsername?: string },
+  role: MemberRole = 'editor'
 ): Promise<PendingInvitation> {
   const supabase = getSupabase();
-  const { data, error } = await supabase.rpc('invite_member', {
+  const { data, error } = await supabase.rpc('invite_member_v2', {
     ws_id: workspaceId,
-    invitee_email: email,
+    invitee_email: target.email ?? null,
+    invitee_github: target.githubUsername ?? null,
     invitee_role: role
   });
   if (error) throw new Error(error.message);
