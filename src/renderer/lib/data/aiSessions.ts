@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 
 export type AiSessionStatus = 'starting' | 'active' | 'ended' | 'failed';
@@ -24,6 +24,9 @@ export interface AiSession {
   exitCode: number | null;
   clientLocalId: string | null;
   sessionStartSha: string | null;
+  controlOpen: boolean;
+  controllerUserId: string | null;
+  controllerClaimedAt: string | null;
 }
 
 export interface AiSessionEvent {
@@ -50,6 +53,9 @@ interface AiSessionRow {
   exit_code: number | null;
   client_local_id: string | null;
   session_start_sha: string | null;
+  control_open: boolean | null;
+  controller_user_id: string | null;
+  controller_claimed_at: string | null;
 }
 
 interface AiEventRow {
@@ -76,7 +82,10 @@ function rowToSession(r: AiSessionRow): AiSession {
     endedAt: r.ended_at,
     exitCode: r.exit_code,
     clientLocalId: r.client_local_id,
-    sessionStartSha: r.session_start_sha
+    sessionStartSha: r.session_start_sha,
+    controlOpen: r.control_open ?? false,
+    controllerUserId: r.controller_user_id,
+    controllerClaimedAt: r.controller_claimed_at
   };
 }
 
@@ -388,6 +397,108 @@ export function useSessionEventsRealtime(
 }
 
 /** Realtime subscription of session row changes (status flip to ended). */
+// =====================================================================
+// Remote control: owner toggle, claim/release, keystroke broadcast.
+// =====================================================================
+
+export async function toggleSessionControl(sessionId: string, open: boolean): Promise<AiSession> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('toggle_ai_session_control', {
+    session_id: sessionId,
+    is_open: open
+  });
+  if (error) throw new Error(error.message);
+  return rowToSession(data as AiSessionRow);
+}
+
+export async function claimSessionControl(sessionId: string): Promise<AiSession> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('claim_ai_session_control', {
+    session_id: sessionId
+  });
+  if (error) throw new Error(error.message);
+  return rowToSession(data as AiSessionRow);
+}
+
+export async function releaseSessionControl(sessionId: string): Promise<AiSession> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('release_ai_session_control', {
+    session_id: sessionId
+  });
+  if (error) throw new Error(error.message);
+  return rowToSession(data as AiSessionRow);
+}
+
+export interface ControlKeystroke {
+  data: string;
+  fromUserId: string;
+}
+
+/**
+ * Spectator-side: persistent keystroke sender. Returns a `send(data)`
+ * function that broadcasts to the owner's listener. Channel is kept open
+ * for the hook's lifetime so we don't subscribe per keystroke.
+ */
+export function useControlKeystrokeSender(
+  sessionId: string | null | undefined,
+  fromUserId: string | null
+): (data: string) => void {
+  const consumerId = useId();
+  const channelRef = useRef<ReturnType<ReturnType<typeof getSupabase>['channel']> | null>(null);
+  const readyRef = useRef(false);
+
+  useEffect(() => {
+    if (!sessionId || !fromUserId) return;
+    const supabase = getSupabase();
+    const ch = supabase.channel(`ai-control-${sessionId}-s-${consumerId}`, {
+      config: { broadcast: { self: false, ack: false } }
+    });
+    ch.subscribe((status) => { readyRef.current = status === 'SUBSCRIBED'; });
+    channelRef.current = ch;
+    return () => {
+      readyRef.current = false;
+      const c = channelRef.current;
+      channelRef.current = null;
+      if (c) void getSupabase().removeChannel(c);
+    };
+  }, [sessionId, fromUserId, consumerId]);
+
+  return useCallback((data: string) => {
+    if (!sessionId || !fromUserId || !readyRef.current) return;
+    const ch = channelRef.current;
+    if (!ch) return;
+    void ch.send({
+      type: 'broadcast',
+      event: 'key',
+      payload: { data, fromUserId } as ControlKeystroke
+    });
+  }, [sessionId, fromUserId]);
+}
+
+/**
+ * Owner-side hook: subscribes to keystroke broadcasts for a session and
+ * invokes onKey for each. Suppresses messages while the session is closed
+ * to control or the controller is the owner themselves.
+ */
+export function useControlKeystrokeReceiver(
+  sessionId: string | null | undefined,
+  onKey: (data: string, fromUserId: string) => void
+): void {
+  const consumerId = useId();
+  useEffect(() => {
+    if (!sessionId) return;
+    const supabase = getSupabase();
+    const channel = supabase
+      .channel(`ai-control-${sessionId}-r-${consumerId}`, { config: { broadcast: { self: false } } })
+      .on('broadcast', { event: 'key' }, ({ payload }) => {
+        const p = payload as ControlKeystroke;
+        if (p?.data) onKey(p.data, p.fromUserId);
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [sessionId, onKey, consumerId]);
+}
+
 export function useSessionRealtime(
   sessionId: string | null | undefined,
   onUpdate: (s: AiSession) => void

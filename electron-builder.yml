@@ -31,10 +31,14 @@ protocols:
     schemes:
       - vibeops
 nsis:
-  oneClick: false
+  # oneClick: true keeps updates fully silent. quitAndInstall(true, true)
+  # invokes the installer with /S, it overwrites the install in place, and
+  # auto-launches the new version. No wizard pops up during in-app updates.
+  oneClick: true
   perMachine: false
-  allowToChangeInstallationDirectory: true
+  allowElevation: true
   shortcutName: VibeOps
+  deleteAppDataOnUninstall: false
 publish:
   provider: github
   owner: tdube-architech

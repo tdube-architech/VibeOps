@@ -16,6 +16,7 @@ import {
 } from '@/lib/data/members';
 import { listProjects } from '@/lib/data/projects';
 import { grantRepoAccess, listWorkspaceGitHubStatus } from '@/lib/data/githubIntegration';
+import { interpretInviteInput } from '@/lib/data/inviteInput';
 
 const MEMBERS_KEY = (ws: string) => ['workspace-members', ws] as const;
 const INVITES_KEY = (ws: string) => ['workspace-invites', ws] as const;
@@ -71,15 +72,12 @@ export function WorkspaceMembersCard() {
   });
 
   function fireInvite(): void {
-    const raw = inviteEmail.trim();
-    if (!raw) return;
-    // Allow either an email or a @github-username (or just a username).
-    if (raw.includes('@') && raw.includes('.')) {
-      invite.mutate({ target: { email: raw }, role: inviteRole });
-    } else {
-      const handle = raw.replace(/^@/, '');
-      invite.mutate({ target: { githubUsername: handle }, role: inviteRole });
+    const target = interpretInviteInput(inviteEmail);
+    if (!target) {
+      toast.error('Enter an email or @github-handle to invite.');
+      return;
     }
+    invite.mutate({ target, role: inviteRole });
   }
   const revoke = useMutation({
     mutationFn: (id: string) => revokeInvitation(id),

@@ -36,7 +36,9 @@ const STARTUP_CHECK_DELAY_MS = 15_000;
 const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 export function setupUpdater(deps: UpdaterDeps): void {
-  autoUpdater.autoDownload = false;
+  // Auto-download the update as soon as it's detected so the user can
+  // click "Install & restart" immediately — no extra "download first" step.
+  autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
   autoUpdater.logger = {
     info: (m: unknown) => deps.logger.info({ updater: true }, String(m)),
@@ -100,6 +102,9 @@ export const updaterApi = {
     return state;
   },
   installAndRestart(): void {
-    autoUpdater.quitAndInstall();
+    // (silent=true, forceRunAfter=true) tells the NSIS installer to run
+    // with /S and relaunch the app once it's done — no wizard, no "do
+    // you want to install" prompt, no manual reopen.
+    autoUpdater.quitAndInstall(true, true);
   }
 };

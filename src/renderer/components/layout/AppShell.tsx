@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
-import { UpdatePrompt } from '@/features/update/UpdatePrompt';
+import { UpdateBanner } from '@/features/update/UpdateBanner';
 import { MigrationGate } from '@/features/migrate/MigrationGate';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useActiveWorkspaceId, useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
@@ -83,6 +83,7 @@ export function AppShell() {
           <div style={{ width: 138 }} />
         </div>
       </div>
+      <UpdateBanner />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex flex-1 flex-col">
@@ -92,7 +93,6 @@ export function AppShell() {
           </main>
         </div>
       </div>
-      <UpdatePrompt />
       <MigrationGate />
     </div>
   );

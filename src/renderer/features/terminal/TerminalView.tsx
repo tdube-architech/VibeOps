@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -11,7 +11,11 @@ import {
   createAiSession,
   appendSessionEvent,
   endSession as endAiSession,
-  recordSessionDiff
+  recordSessionDiff,
+  toggleSessionControl,
+  useControlKeystrokeReceiver,
+  useSessionRealtime,
+  type AiSession
 } from '@/lib/data/aiSessions';
 
 interface Props {
@@ -41,6 +45,10 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
   const fitRef = useRef<FitAddon | null>(null);
   const [session, setSession] = useState<TerminalSession | null>(null);
   const [presetIndex, setPresetIndex] = useState(0);
+  const [aiSessionId, setAiSessionId] = useState<string | null>(null);
+  const [controlOpen, setControlOpen] = useState(false);
+  const [controllerLabel, setControllerLabel] = useState<string | null>(null);
+  const localSessionIdRef = useRef<string | null>(null);
 
   // Refs so listeners registered once on mount can route per-session events
   // without resubscribing each time session/aiSessionId changes.
@@ -114,6 +122,10 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
         aiSessionIdRef.current = null;
         onAiSessionChangeRef.current?.(null);
       }
+      setAiSessionId(null);
+      setControlOpen(false);
+      setControllerLabel(null);
+      localSessionIdRef.current = null;
       void api.aiSession.stopWatch(evt.sessionId).catch(() => {});
       if (activeSessionIdRef.current === evt.sessionId) activeSessionIdRef.current = null;
     });
@@ -198,6 +210,8 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
             sessionStartSha: watchResult.sha
           });
           aiSessionIdRef.current = aiId;
+          setAiSessionId(aiId);
+          localSessionIdRef.current = s.id;
           onAiSessionChange?.({ aiSessionId: aiId, cwd: s.cwd, sessionStartSha: watchResult.sha });
         } catch (e) {
           await api.terminal.kill(s.id).catch(() => {});
@@ -221,6 +235,38 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
     userStoppedRef.current = true;
     await api.terminal.kill(session.id);
   }
+
+  async function onToggleControl(): Promise<void> {
+    if (!aiSessionId) return;
+    const next = !controlOpen;
+    try {
+      const updated = await toggleSessionControl(aiSessionId, next);
+      setControlOpen(updated.controlOpen);
+      if (!updated.controlOpen) setControllerLabel(null);
+      toast.info(next ? 'Remote control opened' : 'Remote control closed',
+        next ? 'Teammates can now claim the keyboard.' : undefined);
+    } catch (e) {
+      toast.error('Could not toggle control', (e as Error).message);
+    }
+  }
+
+  // Owner-side: watch session row to learn who's currently controlling.
+  const onSessionUpdate = useCallback((s: AiSession) => {
+    setControlOpen(s.controlOpen);
+    setControllerLabel(s.controllerUserId);
+  }, []);
+  useSessionRealtime(aiSessionId, onSessionUpdate);
+
+  // Owner-side: forward broadcast keystrokes from the active controller into
+  // the local PTY. Drop messages from anyone other than the claimed controller.
+  const onRemoteKey = useCallback((data: string, fromUserId: string) => {
+    if (!controlOpen) return;
+    if (controllerLabel && fromUserId !== controllerLabel) return;
+    const localId = localSessionIdRef.current;
+    if (!localId) return;
+    void api.terminal.write(localId, data);
+  }, [controlOpen, controllerLabel]);
+  useControlKeystrokeReceiver(aiSessionId, onRemoteKey);
 
   return (
     <div className="space-y-2">
@@ -255,6 +301,21 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
         )}
         {cloud && session && !session.endedAt && (
           <span className="text-xs text-emerald-500">streaming to teammates</span>
+        )}
+        {cloud && aiSessionId && session && !session.endedAt && (
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={controlOpen}
+              onChange={() => void onToggleControl()}
+            />
+            Allow remote control
+            {controlOpen && controllerLabel && (
+              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-amber-300">
+                @{controllerLabel.slice(0, 8)} driving
+              </span>
+            )}
+          </label>
         )}
       </div>
       <div
