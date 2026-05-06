@@ -38,7 +38,16 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
   const fitRef = useRef<FitAddon | null>(null);
   const [session, setSession] = useState<TerminalSession | null>(null);
   const [presetIndex, setPresetIndex] = useState(0);
+
+  // Refs so listeners registered once on mount can route per-session events
+  // without resubscribing each time session/aiSessionId changes.
+  const activeSessionIdRef = useRef<string | null>(null);
   const aiSessionIdRef = useRef<string | null>(null);
+  const cloudProjectIdRef = useRef<string | null>(cloud?.projectId ?? null);
+  const onAiSessionChangeRef = useRef(onAiSessionChange);
+
+  useEffect(() => { cloudProjectIdRef.current = cloud?.projectId ?? null; }, [cloud?.projectId]);
+  useEffect(() => { onAiSessionChangeRef.current = onAiSessionChange; }, [onAiSessionChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -65,6 +74,48 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
     };
   }, []);
 
+  // Persistent IPC listeners — registered once on mount so the PTY's first
+  // chunk after spawn is never dropped due to a useEffect resubscribe race.
+  useEffect(() => {
+    const offData = api.terminal.onData((evt) => {
+      if (evt.sessionId !== activeSessionIdRef.current) return;
+      termRef.current?.write(evt.chunk);
+      const aiId = aiSessionIdRef.current;
+      if (aiId) appendSessionEvent(aiId, evt.stream === 'stderr' ? 'stderr' : 'stdout', evt.chunk);
+    });
+    const offExit = api.terminal.onExit((evt) => {
+      if (evt.sessionId !== activeSessionIdRef.current) return;
+      termRef.current?.write(`\r\n[process exited with code ${evt.exitCode ?? 'null'}]\r\n`);
+      setSession((prev) => prev && prev.id === evt.sessionId
+        ? { ...prev, endedAt: evt.endedAt, exitCode: evt.exitCode }
+        : prev);
+      const aiId = aiSessionIdRef.current;
+      if (aiId) {
+        void endAiSession(aiId, evt.exitCode);
+        aiSessionIdRef.current = null;
+        onAiSessionChangeRef.current?.(null);
+      }
+      void api.aiSession.stopWatch(evt.sessionId).catch(() => {});
+      if (activeSessionIdRef.current === evt.sessionId) activeSessionIdRef.current = null;
+    });
+    const offDiff = api.aiSession.onDiff((evt) => {
+      if (evt.clientLocalId !== activeSessionIdRef.current) return;
+      const aiId = aiSessionIdRef.current;
+      const projectId = cloudProjectIdRef.current;
+      if (!aiId || !projectId) return;
+      void recordSessionDiff({
+        sessionId: aiId,
+        projectId,
+        filePath: evt.filePath,
+        diffKind: evt.diffKind,
+        beforeHash: evt.beforeHash,
+        afterHash: evt.afterHash,
+        sizeBytes: evt.sizeBytes
+      });
+    });
+    return () => { offData(); offExit(); offDiff(); };
+  }, []);
+
   // Forward xterm resize events to the PTY so output reflows correctly.
   useEffect(() => {
     if (!session || session.endedAt) return;
@@ -75,46 +126,6 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
     });
     return () => sub.dispose();
   }, [session?.id, session?.endedAt]);
-
-  // Subscribe to data + exit + diff events for current session.
-  useEffect(() => {
-    if (!session) return;
-    const offData = api.terminal.onData((evt) => {
-      if (evt.sessionId !== session.id) return;
-      termRef.current?.write(evt.chunk);
-      const aiId = aiSessionIdRef.current;
-      if (aiId) appendSessionEvent(aiId, evt.stream === 'stderr' ? 'stderr' : 'stdout', evt.chunk);
-    });
-    const offExit = api.terminal.onExit((evt) => {
-      if (evt.sessionId !== session.id) return;
-      termRef.current?.write(`\r\n[process exited with code ${evt.exitCode ?? 'null'}]\r\n`);
-      setSession((prev) => prev && prev.id === evt.sessionId
-        ? { ...prev, endedAt: evt.endedAt, exitCode: evt.exitCode }
-        : prev);
-      const aiId = aiSessionIdRef.current;
-      if (aiId) {
-        void endAiSession(aiId, evt.exitCode);
-        aiSessionIdRef.current = null;
-        onAiSessionChange?.(null);
-      }
-      void api.aiSession.stopWatch(evt.sessionId).catch(() => {});
-    });
-    const offDiff = api.aiSession.onDiff((evt) => {
-      if (evt.clientLocalId !== session.id) return;
-      const aiId = aiSessionIdRef.current;
-      if (!aiId || !cloud) return;
-      void recordSessionDiff({
-        sessionId: aiId,
-        projectId: cloud.projectId,
-        filePath: evt.filePath,
-        diffKind: evt.diffKind,
-        beforeHash: evt.beforeHash,
-        afterHash: evt.afterHash,
-        sizeBytes: evt.sizeBytes
-      });
-    });
-    return () => { offData(); offExit(); offDiff(); };
-  }, [session?.id, cloud?.projectId, onAiSessionChange]);
 
   // Raw stdin pass-through: PTY handles line editing, history, escape sequences.
   useEffect(() => {
@@ -148,6 +159,7 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
       startArgs.label = label ?? preset.label;
 
       const s = await api.terminal.start(startArgs);
+      activeSessionIdRef.current = s.id;
       term?.clear();
       term?.writeln(`\x1b[2m[started ${s.command} in ${s.cwd}]\x1b[0m`);
       setSession(s);
@@ -197,11 +209,11 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
           <select
             value={presetIndex}
             onChange={(e) => setPresetIndex(Number(e.target.value))}
-            className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm"
+            className="h-9 rounded-md border border-input bg-background text-foreground px-3 text-sm shadow-sm"
             disabled={!!session && !session.endedAt}
           >
             {COMMAND_PRESETS.map((p, i) => (
-              <option key={p.label} value={i}>{p.label}</option>
+              <option key={p.label} value={i} className="bg-background text-foreground">{p.label}</option>
             ))}
           </select>
         )}

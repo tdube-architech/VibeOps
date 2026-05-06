@@ -116,14 +116,25 @@ export class TerminalService {
     }
     Object.assign(env, args.env ?? {}, { TERM: 'xterm-256color' });
 
-    const proc = pty.spawn(command, cmdArgs, {
-      name: 'xterm-256color',
-      cols: args.cols ?? 80,
-      rows: args.rows ?? 30,
-      cwd: args.cwd,
-      env,
-      useConpty: process.platform === 'win32'
-    });
+    let proc: IPty;
+    try {
+      proc = pty.spawn(command, cmdArgs, {
+        name: 'xterm-256color',
+        cols: args.cols ?? 80,
+        rows: args.rows ?? 30,
+        cwd: args.cwd,
+        env,
+        encoding: 'utf8',
+        useConpty: process.platform === 'win32',
+        useConptyDll: process.platform === 'win32'
+      });
+    } catch (err) {
+      this.deps.logger.error(
+        { command, cwd: args.cwd, err: (err as Error).message },
+        'pty.spawn failed'
+      );
+      throw err;
+    }
 
     const startedAt = new Date().toISOString();
     const session: TrackedSession = {
@@ -140,15 +151,36 @@ export class TerminalService {
     };
     this.sessions.set(id, session);
 
-    proc.onData((data: string) => this.emitData({ sessionId: id, chunk: data, stream: 'stdout' }));
+    let totalBytes = 0;
+    let firstDataAt: number | null = null;
+    proc.onData((data: string) => {
+      if (firstDataAt === null) {
+        firstDataAt = Date.now();
+        this.deps.logger.info(
+          { sessionId: id, msSinceStart: firstDataAt - Date.parse(startedAt), len: data.length },
+          'terminal first data'
+        );
+      }
+      totalBytes += data.length;
+      this.emitData({ sessionId: id, chunk: data, stream: 'stdout' });
+    });
     proc.onExit(({ exitCode }: { exitCode: number; signal?: number }) => {
       const tracked = this.sessions.get(id);
       if (!tracked) return;
       tracked.endedAt = new Date().toISOString();
       tracked.exitCode = exitCode;
       this.emitExit({ sessionId: id, exitCode, endedAt: tracked.endedAt });
-      this.deps.logger.info({ sessionId: id, exitCode }, 'terminal exited');
+      this.deps.logger.info({ sessionId: id, exitCode, totalBytes }, 'terminal exited');
     });
+
+    // Diagnostic only (logs, not user-visible): report PTY stats 1s after spawn
+    // so we can tell from logs whether the PTY produced any output.
+    setTimeout(() => {
+      this.deps.logger.info(
+        { sessionId: id, totalBytes, pid: proc.pid, processName: proc.process },
+        'terminal 1s stats'
+      );
+    }, 1000);
 
     this.deps.logger.info(
       { sessionId: id, command, cwd: args.cwd, cols: args.cols, rows: args.rows },
