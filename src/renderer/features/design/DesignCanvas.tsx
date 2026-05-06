@@ -282,6 +282,13 @@ function CanvasInner({ canvasId }: Props) {
                   alt=""
                   className="h-4 w-4 shrink-0"
                   draggable={false}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    const fallback = document.createElement('div');
+                    fallback.className = 'h-4 w-4 shrink-0 rounded';
+                    fallback.style.background = `#${t.color}`;
+                    img.replaceWith(fallback);
+                  }}
                 />
               ) : (
                 <div

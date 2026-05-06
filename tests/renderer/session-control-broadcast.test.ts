@@ -76,7 +76,7 @@ describe('useControlKeystrokeReceiver', () => {
 
     expect(channels).toHaveLength(1);
     const ch = channels[0]!;
-    expect(ch.name).toMatch(/^ai-control-sess-1-r-/);
+    expect(ch.name).toBe('ai-control-sess-1');
     expect(ch.subscribeStatus).toBe('SUBSCRIBED');
 
     act(() => ch.fireBroadcast('key', { data: 'hello', fromUserId: 'driver-1' }));
@@ -121,7 +121,7 @@ describe('useControlKeystrokeSender', () => {
 
     expect(channels).toHaveLength(1);
     const ch = channels[0]!;
-    expect(ch.name).toMatch(/^ai-control-sess-1-s-/);
+    expect(ch.name).toBe('ai-control-sess-1');
     expect(ch.subscribeStatus).toBe('SUBSCRIBED');
 
     act(() => result.current('h'));

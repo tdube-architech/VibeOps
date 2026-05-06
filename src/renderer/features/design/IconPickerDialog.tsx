@@ -70,7 +70,21 @@ export function IconPickerDialog({ open, onOpenChange, onPick, category }: Props
                 title={t.label}
               >
                 {t.iconSlug ? (
-                  <img src={iconUrl(t.iconSlug, t.color)} alt="" className="h-8 w-8" draggable={false} />
+                  <img
+                    src={iconUrl(t.iconSlug, t.color)}
+                    alt=""
+                    className="h-8 w-8"
+                    draggable={false}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const fallback = document.createElement('div');
+                      fallback.className = 'h-8 w-8 rounded grid place-items-center text-[10px] uppercase';
+                      fallback.style.background = '#1f2937';
+                      fallback.style.color = `#${t.color}`;
+                      fallback.textContent = t.id.slice(0, 3);
+                      img.replaceWith(fallback);
+                    }}
+                  />
                 ) : (
                   <div
                     className="h-8 w-8 rounded grid place-items-center text-[10px] uppercase"

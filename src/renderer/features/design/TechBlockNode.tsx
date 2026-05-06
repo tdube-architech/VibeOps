@@ -60,6 +60,19 @@ export function TechBlockNode({ id, data, selected, onLabelChange, onOpenIconPic
                 alt=""
                 className="h-5 w-5"
                 draggable={false}
+                onError={(e) => {
+                  // Slug missing on simpleicons → fall back to the category-coloured tile.
+                  const img = e.currentTarget;
+                  const parent = img.parentElement;
+                  img.remove();
+                  if (parent) {
+                    const span = document.createElement('span');
+                    span.className = 'text-[10px] uppercase';
+                    span.style.color = tone;
+                    span.textContent = category.slice(0, 3);
+                    parent.appendChild(span);
+                  }
+                }}
               />
             ) : (
               <span className="text-[10px] uppercase" style={{ color: tone }}>

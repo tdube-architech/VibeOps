@@ -17,6 +17,7 @@ import { ProjectDesignTab } from './ProjectDesignTab';
 import { useProjectRealtime } from '@/lib/data/realtime';
 import { useProjectActivity } from '@/lib/data/projectActivity';
 import { ActivityPanel } from '@/features/projects/ActivityPanel';
+import { RepoAccessPanel } from '@/features/projects/RepoAccessPanel';
 import { PresenceStack } from '@/features/presence/PresenceStack';
 
 export function ProjectDetailRoute() {
@@ -91,6 +92,7 @@ export function ProjectDetailRoute() {
         </TabsList>
         <TabsContent value="overview">
           <div className="space-y-3">
+            {isCloud && <RepoAccessPanel project={project} />}
             {isCloud && <ActivityPanel projectId={project.id} />}
             <ProjectOverviewTab project={project} />
           </div>

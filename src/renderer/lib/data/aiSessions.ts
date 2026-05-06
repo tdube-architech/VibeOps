@@ -444,7 +444,6 @@ export function useControlKeystrokeSender(
   sessionId: string | null | undefined,
   fromUserId: string | null
 ): (data: string) => void {
-  const consumerId = useId();
   const channelRef = useRef<ReturnType<ReturnType<typeof getSupabase>['channel']> | null>(null);
   const readyRef = useRef(false);
   const queueRef = useRef<string[]>([]);
@@ -452,7 +451,9 @@ export function useControlKeystrokeSender(
   useEffect(() => {
     if (!sessionId || !fromUserId) return;
     const supabase = getSupabase();
-    const ch = supabase.channel(`ai-control-${sessionId}-s-${consumerId}`, {
+    // Same channel name as the receiver — Realtime routes broadcasts by
+    // channel name across clients. Per-consumer suffixes break delivery.
+    const ch = supabase.channel(`ai-control-${sessionId}`, {
       config: { broadcast: { self: false, ack: false } }
     });
     ch.subscribe((status) => {
@@ -476,7 +477,7 @@ export function useControlKeystrokeSender(
       channelRef.current = null;
       if (c) void getSupabase().removeChannel(c);
     };
-  }, [sessionId, fromUserId, consumerId]);
+  }, [sessionId, fromUserId]);
 
   return useCallback((data: string) => {
     if (!sessionId || !fromUserId) return;
@@ -496,26 +497,27 @@ export function useControlKeystrokeSender(
 
 /**
  * Owner-side hook: subscribes to keystroke broadcasts for a session and
- * invokes onKey for each. Suppresses messages while the session is closed
- * to control or the controller is the owner themselves.
+ * invokes onKey for each. The channel name MUST match the sender's name —
+ * supabase Realtime broadcasts route by channel name across clients, so
+ * any per-consumer suffix would isolate sender and receiver into separate
+ * channels and silently drop every keystroke.
  */
 export function useControlKeystrokeReceiver(
   sessionId: string | null | undefined,
   onKey: (data: string, fromUserId: string) => void
 ): void {
-  const consumerId = useId();
   useEffect(() => {
     if (!sessionId) return;
     const supabase = getSupabase();
     const channel = supabase
-      .channel(`ai-control-${sessionId}-r-${consumerId}`, { config: { broadcast: { self: false } } })
+      .channel(`ai-control-${sessionId}`, { config: { broadcast: { self: false } } })
       .on('broadcast', { event: 'key' }, ({ payload }) => {
         const p = payload as ControlKeystroke;
         if (p?.data) onKey(p.data, p.fromUserId);
       })
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [sessionId, onKey, consumerId]);
+  }, [sessionId, onKey]);
 }
 
 export function useSessionRealtime(
