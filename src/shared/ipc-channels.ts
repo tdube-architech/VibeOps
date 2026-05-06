@@ -106,6 +106,7 @@ export const IpcChannels = {
   terminalData: 'terminal:data',
   terminalExit: 'terminal:exit',
   terminalPopout: 'terminal:popout',
+  terminalPopoutClosed: 'terminal:popoutClosed',
 
   aiSessionStartWatch: 'aiSession:startWatch',
   aiSessionStopWatch: 'aiSession:stopWatch',

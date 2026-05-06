@@ -15,6 +15,7 @@ import {
   toggleSessionControl,
   useControlKeystrokeReceiver,
   useSessionRealtime,
+  listEventsForSession,
   type AiSession
 } from '@/lib/data/aiSessions';
 import { useUserLabel } from '@/lib/data/useWorkspaceUserLabels';
@@ -28,6 +29,21 @@ interface Props {
   onAiSessionChange?: (info: { aiSessionId: string; cwd: string; sessionStartSha: string | null } | null) => void;
   /** When true, no pop-out button (used by the popout window itself). */
   hidePopout?: boolean;
+  /** Display label like "Terminal #2" in the toolbar. */
+  terminalNumber?: number;
+  /**
+   * Bind to an already-running terminal session instead of showing Start.
+   * Used by the pop-out window so closing the popout doesn't kill the PTY.
+   */
+  attach?: {
+    localTerminalId: string;
+    aiSessionId: string;
+    sessionStartSha: string | null;
+  };
+  /** When true, this view doesn't kill the PTY/AI session on unmount. */
+  keepSessionOnUnmount?: boolean;
+  /** Fires when user clicks Pop out — parent can hide this cell. */
+  onPopOutRequested?: () => void;
 }
 
 interface Preset { label: string; command: string; args: string[]; provider: string }
@@ -42,7 +58,10 @@ const COMMAND_PRESETS: Preset[] = [
   { label: 'bash', command: 'bash', args: ['-l'], provider: 'shell' }
 ];
 
-export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChange, hidePopout }: Props) {
+export function TerminalView({
+  cwd, command, args, label, cloud, onAiSessionChange, hidePopout,
+  terminalNumber, attach, keepSessionOnUnmount, onPopOutRequested
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -85,11 +104,62 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
     window.addEventListener('resize', onResize);
     return () => {
       window.removeEventListener('resize', onResize);
+      // Tear down any live terminal session attached to this view UNLESS
+      // we're a pop-out / cell that's holding the session for someone else.
+      const localId = activeSessionIdRef.current;
+      if (localId && !keepSessionOnUnmount) {
+        userStoppedRef.current = true;
+        void api.terminal.kill(localId).catch(() => {});
+        const aiId = aiSessionIdRef.current;
+        if (aiId) {
+          void endAiSession(aiId, null).catch(() => {});
+          aiSessionIdRef.current = null;
+        }
+        void api.aiSession.stopWatch(localId).catch(() => {});
+        activeSessionIdRef.current = null;
+      }
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
     };
-  }, []);
+  }, [keepSessionOnUnmount]);
+
+  // Attach mode: bind to an already-running session instead of letting the
+  // user click Start. Used by the pop-out window so the session continues
+  // running uninterrupted.
+  useEffect(() => {
+    if (!attach || !termRef.current) return;
+    activeSessionIdRef.current = attach.localTerminalId;
+    aiSessionIdRef.current = attach.aiSessionId;
+    setSession({
+      id: attach.localTerminalId,
+      command: command ?? 'attached',
+      args: args ?? [],
+      cwd,
+      label: label ?? 'attached',
+      lineMode: false,
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+      exitCode: null
+    });
+    onAiSessionChangeRef.current?.({
+      aiSessionId: attach.aiSessionId,
+      cwd,
+      sessionStartSha: attach.sessionStartSha
+    });
+
+    // Backfill history from ai_session_events so the popped-out xterm shows
+    // everything that's already happened, not just live chunks.
+    const term = termRef.current;
+    void listEventsForSession(attach.aiSessionId, 1000).then((events) => {
+      for (const e of events) {
+        if (!e.payload) continue;
+        if (e.kind === 'stderr') term.write(`\x1b[31m${e.payload}\x1b[0m`);
+        else if (e.kind === 'stdin') {/* skip — the source PTY already echoes */}
+        else term.write(e.payload);
+      }
+    }).catch(() => {});
+  }, [attach?.localTerminalId, attach?.aiSessionId, attach?.sessionStartSha, command, args, label, cwd]);
 
   // Persistent IPC listeners — registered once on mount so the PTY's first
   // chunk after spawn is never dropped due to a useEffect resubscribe race.
@@ -278,6 +348,11 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
+        {terminalNumber !== undefined && (
+          <span className="rounded bg-secondary px-1.5 py-0.5 text-[11px] font-medium">
+            #{terminalNumber}
+          </span>
+        )}
         {!command && (
           <select
             value={presetIndex}
@@ -299,12 +374,24 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
             <Square className="h-4 w-4" /> Stop
           </Button>
         )}
-        {!hidePopout && cloud && (
+        {!hidePopout && cloud && session && !session.endedAt && aiSessionIdRef.current && (
           <Button
             variant="outline"
             size="sm"
-            title="Open this terminal in a separate window"
-            onClick={() => void api.terminal.popout(cloud.projectId, cwd).catch(() => {})}
+            title="Open this terminal in a separate window — the session keeps running."
+            onClick={() => {
+              const localId = activeSessionIdRef.current;
+              const aiId = aiSessionIdRef.current;
+              if (!localId || !aiId) return;
+              void api.terminal.popout({
+                projectId: cloud.projectId,
+                cwd,
+                localTerminalId: localId,
+                aiSessionId: aiId,
+                title: terminalNumber ? `VibeOps Terminal #${terminalNumber}` : 'VibeOps Terminal'
+              }).catch(() => {});
+              onPopOutRequested?.();
+            }}
           >
             <ExternalLink className="h-3.5 w-3.5" /> Pop out
           </Button>

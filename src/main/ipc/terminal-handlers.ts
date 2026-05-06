@@ -39,20 +39,36 @@ export function registerTerminalHandlers(svc: TerminalService): void {
   });
 
   ipcMain.handle(IpcChannels.terminalPopout,
-    (_e, payload: { projectId: string; cwd: string }): Result<true> => {
+    (_e, payload: {
+      projectId: string;
+      cwd: string;
+      localTerminalId?: string;
+      aiSessionId?: string;
+      sessionStartSha?: string | null;
+      title?: string;
+    }): Result<true> => {
       try {
-        openPopoutWindow(payload.projectId, payload.cwd);
+        openPopoutWindow(payload);
         return ok(true);
       } catch (e) { return fail(e); }
     }
   );
 }
 
-function openPopoutWindow(projectId: string, cwd: string): void {
+interface PopoutArgs {
+  projectId: string;
+  cwd: string;
+  localTerminalId?: string;
+  aiSessionId?: string;
+  sessionStartSha?: string | null;
+  title?: string;
+}
+
+function openPopoutWindow(args: PopoutArgs): void {
   const win = new BrowserWindow({
     width: 1024,
     height: 640,
-    title: 'VibeOps Terminal',
+    title: args.title ?? 'VibeOps Terminal',
     backgroundColor: '#0a0a0b',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.cjs'),
@@ -60,12 +76,31 @@ function openPopoutWindow(projectId: string, cwd: string): void {
       sandbox: false
     }
   });
-  // Reuse the renderer dev server / production build, route to the popout view.
+  const params = new URLSearchParams({ cwd: args.cwd });
+  if (args.localTerminalId) params.set('localTerminalId', args.localTerminalId);
+  if (args.aiSessionId) params.set('aiSessionId', args.aiSessionId);
+  if (args.sessionStartSha) params.set('sessionStartSha', args.sessionStartSha);
+  if (args.title) params.set('title', args.title);
+
   const devUrl = process.env.ELECTRON_RENDERER_URL;
-  const target = `#/popout/terminal/${encodeURIComponent(projectId)}?cwd=${encodeURIComponent(cwd)}`;
+  const hash = `/popout/terminal/${encodeURIComponent(args.projectId)}?${params.toString()}`;
   if (devUrl) {
-    void win.loadURL(devUrl + target);
+    void win.loadURL(devUrl + '#' + hash);
   } else {
-    void win.loadFile(path.join(__dirname, '../renderer/index.html'), { hash: target.replace(/^#/, '') });
+    void win.loadFile(path.join(__dirname, '../renderer/index.html'), { hash });
   }
+
+  // When the popout window is closed, broadcast the local terminal id so any
+  // other window with a hidden cell for this session can un-hide and resume
+  // showing the stream.
+  win.on('closed', () => {
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) {
+        w.webContents.send(IpcChannels.terminalPopoutClosed, {
+          localTerminalId: args.localTerminalId ?? null,
+          aiSessionId: args.aiSessionId ?? null
+        });
+      }
+    }
+  });
 }

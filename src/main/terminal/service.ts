@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { customAlphabet } from 'nanoid';
 import type { Logger } from 'pino';
-import type { BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';
 
 type PtyModule = typeof import('node-pty');
@@ -261,15 +261,17 @@ export class TerminalService {
   }
 
   private emitData(evt: TerminalDataEvent): void {
-    const win = this.deps.getMainWindow();
-    if (!win || win.isDestroyed()) return;
-    win.webContents.send(IpcChannels.terminalData, evt);
+    // Broadcast to every window (main + any pop-out terminal windows) so
+    // a TerminalView in a pop-out gets the same data stream as the original.
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) w.webContents.send(IpcChannels.terminalData, evt);
+    }
   }
 
   private emitExit(evt: TerminalExitEvent): void {
-    const win = this.deps.getMainWindow();
-    if (!win || win.isDestroyed()) return;
-    win.webContents.send(IpcChannels.terminalExit, evt);
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) w.webContents.send(IpcChannels.terminalExit, evt);
+    }
   }
 }
 

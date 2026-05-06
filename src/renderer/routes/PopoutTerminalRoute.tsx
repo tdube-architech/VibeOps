@@ -12,16 +12,26 @@ interface ProjectStub {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Chrome-less route mounted by the BrowserWindow that the main process spawns
- * when the user clicks "Pop out" on a terminal tile. Hosts a single TerminalView
- * pointed at the project's cwd; the main window keeps running its own.
+ * Chrome-less route hosted by the BrowserWindow that the main process spawns
+ * when the user clicks "Pop out" on a terminal tile. Binds to the existing
+ * PTY session (via `attach` mode) so closing this window does NOT end the
+ * underlying terminal — the original cell takes over the display again.
  */
 export function PopoutTerminalRoute() {
   const { projectId } = useParams<{ projectId: string }>();
   const [params] = useSearchParams();
   const cwd = params.get('cwd') ?? '';
+  const localTerminalId = params.get('localTerminalId') ?? '';
+  const aiSessionId = params.get('aiSessionId') ?? '';
+  const sessionStartSha = params.get('sessionStartSha');
+  const titleParam = params.get('title');
+
   const [project, setProject] = useState<ProjectStub | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (titleParam) document.title = titleParam;
+  }, [titleParam]);
 
   useEffect(() => {
     if (!projectId || !UUID_RE.test(projectId)) {
@@ -49,7 +59,7 @@ export function PopoutTerminalRoute() {
       </div>
     );
   }
-  if (!project || !cwd) {
+  if (!project || !cwd || !localTerminalId || !aiSessionId) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background text-sm text-muted-foreground">
         Loading…
@@ -60,12 +70,14 @@ export function PopoutTerminalRoute() {
   return (
     <div className="flex h-screen w-screen flex-col gap-2 bg-background p-3">
       <div className="text-xs text-muted-foreground">
-        {project.name} · <code>{cwd}</code>
+        {project.name} · <code>{cwd}</code> · {titleParam ?? 'Terminal'}
       </div>
       <div className="flex-1 overflow-hidden">
         <TerminalView
           cwd={cwd}
           cloud={{ projectId: project.id, workspaceId: project.workspaceId }}
+          attach={{ localTerminalId, aiSessionId, sessionStartSha }}
+          keepSessionOnUnmount
           hidePopout
         />
       </div>
