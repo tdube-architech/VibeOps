@@ -48,6 +48,9 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
   const aiSessionIdRef = useRef<string | null>(null);
   const cloudProjectIdRef = useRef<string | null>(cloud?.projectId ?? null);
   const onAiSessionChangeRef = useRef(onAiSessionChange);
+  /** Set when the user clicks Stop so we can suppress trailing chunks and
+   *  reset the UI to a fresh blank state instead of showing exit chrome. */
+  const userStoppedRef = useRef(false);
 
   useEffect(() => { cloudProjectIdRef.current = cloud?.projectId ?? null; }, [cloud?.projectId]);
   useEffect(() => { onAiSessionChangeRef.current = onAiSessionChange; }, [onAiSessionChange]);
@@ -82,16 +85,29 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
   useEffect(() => {
     const offData = api.terminal.onData((evt) => {
       if (evt.sessionId !== activeSessionIdRef.current) return;
+      // After Stop, drop trailing PTY chunks so the wipe stays clean.
+      if (userStoppedRef.current) return;
       termRef.current?.write(evt.chunk);
       const aiId = aiSessionIdRef.current;
       if (aiId) appendSessionEvent(aiId, evt.stream === 'stderr' ? 'stderr' : 'stdout', evt.chunk);
     });
     const offExit = api.terminal.onExit((evt) => {
       if (evt.sessionId !== activeSessionIdRef.current) return;
-      termRef.current?.write(`\r\n[process exited with code ${evt.exitCode ?? 'null'}]\r\n`);
-      setSession((prev) => prev && prev.id === evt.sessionId
-        ? { ...prev, endedAt: evt.endedAt, exitCode: evt.exitCode }
-        : prev);
+      const wasUserStop = userStoppedRef.current;
+      userStoppedRef.current = false;
+
+      if (wasUserStop) {
+        // Wipe the screen and drop the session entirely so the UI shows a
+        // blank canvas + Start button, not "exited with code X".
+        termRef.current?.reset();
+        setSession(null);
+      } else {
+        termRef.current?.write(`\r\n[process exited with code ${evt.exitCode ?? 'null'}]\r\n`);
+        setSession((prev) => prev && prev.id === evt.sessionId
+          ? { ...prev, endedAt: evt.endedAt, exitCode: evt.exitCode }
+          : prev);
+      }
+
       const aiId = aiSessionIdRef.current;
       if (aiId) {
         void endAiSession(aiId, evt.exitCode);
@@ -202,6 +218,7 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
 
   async function stop() {
     if (!session) return;
+    userStoppedRef.current = true;
     await api.terminal.kill(session.id);
   }
 
