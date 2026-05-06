@@ -1,5 +1,9 @@
 appId: com.vibeops.app
 productName: VibeOps
+# Skip the implicit rebuild step. better-sqlite3 is rebuilt in postinstall;
+# node-pty is N-API, the shipped prebuilds work across Node/Electron ABIs and
+# trying to rebuild from source would fail on its winpty submodule.
+npmRebuild: false
 directories:
   buildResources: build
   output: release
