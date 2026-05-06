@@ -10,7 +10,9 @@ export function registerCoreHandlers(): void {
     return {
       version,
       buildTimestamp: ts,
-      displayVersion: ts ? `${version}.${ts}` : version,
+      // displayVersion now matches the GitHub Release tag exactly. The build
+      // timestamp is shown separately as "Built MMDD HH:mm UTC".
+      displayVersion: version,
       electronVersion: process.versions.electron,
       platform: process.platform
     };

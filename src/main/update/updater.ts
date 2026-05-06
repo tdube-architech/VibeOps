@@ -22,7 +22,7 @@ export interface UpdateState {
 const ts = typeof __BUILD_TIMESTAMP__ === 'string' ? __BUILD_TIMESTAMP__ : '';
 let state: UpdateState = {
   status: 'idle',
-  currentVersion: ts ? `${app.getVersion()}.${ts}` : app.getVersion(),
+  currentVersion: app.getVersion(),
   latestVersion: null,
   message: null,
   progressPercent: null,
