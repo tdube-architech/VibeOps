@@ -56,7 +56,14 @@ export function WorkspaceMembersCard() {
       qc.invalidateQueries({ queryKey: INVITES_KEY(wsId!) });
       toast.success('Invitation created', 'Copy the link below and send it to the invitee.');
     },
-    onError: (e) => toast.error('Invite failed', (e as Error).message)
+    onError: (e) => {
+      const msg = (e as Error).message;
+      if (/WORKSPACE_MEMBER_LIMIT|P0001/.test(msg)) {
+        toast.error('Member cap reached', 'Free workspaces allow 5 members. Upgrade or start trial in Settings → Workspace → Billing.');
+      } else {
+        toast.error('Invite failed', msg);
+      }
+    }
   });
   const revoke = useMutation({
     mutationFn: (id: string) => revokeInvitation(id),

@@ -9,6 +9,7 @@ import { RulePackCard } from '@/features/rule-pack/RulePackCard';
 import { AccountCard } from '@/features/auth/AccountCard';
 import { MigrationCard } from '@/features/migrate/MigrationCard';
 import { WorkspaceMembersCard } from '@/features/workspaces/WorkspaceMembersCard';
+import { BillingCard } from '@/features/billing/BillingCard';
 import type { AIProviderId } from '@shared/types';
 
 const PROVIDERS: AIProviderId[] = ['anthropic', 'mock'];
@@ -42,6 +43,7 @@ export function SettingsRoute() {
         </TabsContent>
 
         <TabsContent value="workspace" className="space-y-4">
+          <BillingCard />
           <WorkspaceMembersCard />
           <MigrationCard />
         </TabsContent>
