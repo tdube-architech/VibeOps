@@ -12,7 +12,7 @@ import {
   fetchBilling, isBillingBypassEnabled, openBillingPortal, startCheckout, startTrial,
   type WorkspaceBilling
 } from '@/lib/data/billing';
-import { listMyConcurrentActiveCount } from '@/lib/data/aiSessions';
+import { listMyConcurrentActiveCount, endAllMyActiveSessions } from '@/lib/data/aiSessions';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -125,6 +125,20 @@ export function BillingCard() {
               <span className="text-xs text-muted-foreground">
                 · {aiActiveCount ?? 0} of {billing.plan === 'pro' ? 5 : 1} AI session{billing.plan === 'pro' ? 's' : ''} active
               </span>
+              {(aiActiveCount ?? 0) > 0 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs"
+                  onClick={async () => {
+                    const n = await endAllMyActiveSessions(0);
+                    toast.success(`Ended ${n} stuck session${n === 1 ? '' : 's'}`);
+                    qc.invalidateQueries({ queryKey: ['ai-sessions'] });
+                  }}
+                >
+                  Reset stuck
+                </Button>
+              )}
             </div>
 
             {billing.subscriptionStatus === 'trialing' && trialDaysLeft !== null && (

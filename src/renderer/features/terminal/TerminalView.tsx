@@ -26,8 +26,11 @@ interface Props {
 interface Preset { label: string; command: string; args: string[]; provider: string }
 const COMMAND_PRESETS: Preset[] = [
   { label: 'OS Shell', command: '', args: [], provider: 'shell' },
-  { label: 'Claude Code', command: 'claude', args: [], provider: 'claude' },
+  { label: 'Claude Code (new)', command: 'claude', args: [], provider: 'claude' },
+  { label: 'Claude Code (continue last)', command: 'claude', args: ['--continue'], provider: 'claude' },
+  { label: 'Claude Code (pick session)', command: 'claude', args: ['--resume'], provider: 'claude' },
   { label: 'Codex CLI', command: 'codex', args: [], provider: 'codex' },
+  { label: 'Codex CLI (resume)', command: 'codex', args: ['--resume'], provider: 'codex' },
   { label: 'PowerShell', command: 'powershell.exe', args: ['-NoLogo'], provider: 'shell' },
   { label: 'bash', command: 'bash', args: ['-l'], provider: 'shell' }
 ];

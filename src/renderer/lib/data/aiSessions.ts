@@ -312,6 +312,50 @@ export function useSessionDiffsRealtime(
   }, [sessionId, onChange]);
 }
 
+/**
+ * End ai_session rows owned by the current user that look orphaned. A row is
+ * orphaned if it's older than `staleSeconds` AND has no events in the same
+ * window — a live session on another machine would still be emitting stdout
+ * events. Used at app startup to clear leftovers and as a manual reset.
+ */
+export async function endAllMyActiveSessions(staleSeconds = 60): Promise<number> {
+  const supabase = getSupabase();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) return 0;
+  const cutoff = new Date(Date.now() - staleSeconds * 1000).toISOString();
+
+  // Pull candidate rows.
+  const { data: candidates, error: listErr } = await supabase
+    .from('ai_sessions')
+    .select('id, started_at')
+    .eq('owner_user_id', u.user.id)
+    .in('status', ['starting', 'active'])
+    .lt('started_at', cutoff);
+  if (listErr || !candidates) return 0;
+
+  const orphanIds: string[] = [];
+  for (const row of candidates as Array<{ id: string; started_at: string }>) {
+    // Any event in the staleness window means the session is alive somewhere.
+    const { count } = await supabase
+      .from('ai_session_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', row.id)
+      .gte('ts', cutoff);
+    if ((count ?? 0) === 0) orphanIds.push(row.id);
+  }
+
+  if (orphanIds.length === 0) return 0;
+  const { error } = await supabase
+    .from('ai_sessions')
+    .update({ status: 'ended', ended_at: new Date().toISOString() })
+    .in('id', orphanIds);
+  if (error) {
+    console.warn('[ai-session] failed to end orphans', error.message);
+    return 0;
+  }
+  return orphanIds.length;
+}
+
 export async function listMyConcurrentActiveCount(): Promise<number> {
   const supabase = getSupabase();
   const { data: u } = await supabase.auth.getUser();

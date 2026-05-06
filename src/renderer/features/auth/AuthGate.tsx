@@ -5,6 +5,7 @@ import { toast } from '@/lib/toast';
 import { getSupabase } from '@/lib/supabase';
 import { useAuth, exchangeCodeForSession } from './useAuth';
 import { SignInScreen } from './SignInScreen';
+import { endAllMyActiveSessions } from '@/lib/data/aiSessions';
 
 const PENDING_INVITE_KEY = 'vibeops:pending-invite-token';
 
@@ -19,6 +20,18 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const { state, loading } = useAuth();
   const qc = useQueryClient();
   const acceptedRef = useRef<Set<string>>(new Set());
+  const cleanedSessionsRef = useRef(false);
+
+  useEffect(() => {
+    if (state?.status !== 'authenticated' || cleanedSessionsRef.current) return;
+    cleanedSessionsRef.current = true;
+    void endAllMyActiveSessions().then((n) => {
+      if (n > 0) {
+        console.info(`[ai-session] cleaned ${n} orphan(s) from prior runs`);
+        qc.invalidateQueries({ queryKey: ['ai-sessions'] });
+      }
+    });
+  }, [state?.status, qc]);
 
   useEffect(() => {
     return api.auth.onDeepLink(async (rawUrl) => {
