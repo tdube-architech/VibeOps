@@ -17,6 +17,7 @@ import {
   type AiSession,
   type AiSessionEvent
 } from '@/lib/data/aiSessions';
+import { useUserLabel } from '@/lib/data/useWorkspaceUserLabels';
 
 function useCurrentUserId(): string | null {
   const [id, setId] = useState<string | null>(null);
@@ -81,6 +82,8 @@ function SpectatorRow({ session, myUserId }: { session: AiSession; myUserId: str
 
   const isEnded = live.status === 'ended' || live.status === 'failed';
   const iAmController = live.controllerUserId === myUserId;
+  const ownerLabel = useUserLabel(live.workspaceId, live.ownerUserId);
+  const driverLabel = useUserLabel(live.workspaceId, live.controllerUserId);
 
   return (
     <div className="rounded-md border border-border">
@@ -96,13 +99,13 @@ function SpectatorRow({ session, myUserId }: { session: AiSession; myUserId: str
             )}
           </div>
           <div className="text-xs text-muted-foreground">
-            owned by user {live.ownerUserId.slice(0, 8)}…
+            owned by {ownerLabel ?? live.ownerUserId.slice(0, 8) + '…'}
             {' · '}
             started {new Date(live.startedAt).toLocaleTimeString()}
             {' · '}
             <span className={isEnded ? 'text-muted-foreground' : 'text-emerald-500'}>{live.status}</span>
             {live.controllerUserId && (
-              <> · driver: {iAmController ? 'you' : `${live.controllerUserId.slice(0, 8)}…`}</>
+              <> · driver: {iAmController ? 'you' : (driverLabel ?? live.controllerUserId.slice(0, 8) + '…')}</>
             )}
           </div>
         </div>
@@ -119,20 +122,26 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const iAmController = session.controllerUserId === myUserId;
+  const iAmControllerRef = useRef(iAmController);
+  iAmControllerRef.current = iAmController;
   const controlAvailable = session.controlOpen
     && session.status !== 'ended' && session.status !== 'failed';
+  const driverLabel = useUserLabel(session.workspaceId, session.controllerUserId);
 
-  // Persistent xterm instance — toggles disableStdin based on control state.
+  // Build the xterm once. We intentionally never set disableStdin (xterm.js
+  // v6 doesn't reliably honor runtime mutation of that option). Instead we
+  // gate input via attachCustomKeyEventHandler — when the spectator isn't
+  // the controller, key events are swallowed before reaching the buffer.
   useEffect(() => {
     if (!containerRef.current) return;
     const term = new Terminal({
       fontFamily: 'JetBrains Mono, Consolas, Menlo, monospace',
       fontSize: 12,
-      cursorBlink: iAmController,
-      disableStdin: !iAmController,
+      cursorBlink: true,
       theme: { background: '#0a0a0b' },
       convertEol: true
     });
+    term.attachCustomKeyEventHandler(() => iAmControllerRef.current);
     const fit = new FitAddon();
     term.loadAddon(fit);
     term.open(containerRef.current);
@@ -152,14 +161,6 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
     };
   }, [session.id]);
 
-  // Toggle stdin on the live xterm when control state changes.
-  useEffect(() => {
-    const term = termRef.current;
-    if (!term) return;
-    term.options.disableStdin = !iAmController;
-    term.options.cursorBlink = iAmController;
-  }, [iAmController]);
-
   const onEvent = useCallback((e: AiSessionEvent) => {
     const term = termRef.current;
     if (!term) return;
@@ -167,7 +168,9 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
   }, []);
   useSessionEventsRealtime(session.id, onEvent);
 
-  // Keystroke sender (no-op when not controlling).
+  // Keystroke sender — listener attached only while controller. Output echo
+  // arrives via ai_session_events so the user sees what they typed once the
+  // owner's PTY processes it.
   const sendKey = useControlKeystrokeSender(
     iAmController ? session.id : null,
     iAmController ? myUserId : null
@@ -204,7 +207,7 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
           ) : session.controllerUserId ? (
             <>
               <span className="text-muted-foreground">
-                {session.controllerUserId.slice(0, 8)}… is driving.
+                {driverLabel ?? session.controllerUserId.slice(0, 8) + '…'} is driving.
               </span>
               <Button size="sm" variant="outline" onClick={() => void claim()}>
                 <Hand className="h-3 w-3" /> Take over

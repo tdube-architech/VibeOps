@@ -17,6 +17,7 @@ import {
   useSessionRealtime,
   type AiSession
 } from '@/lib/data/aiSessions';
+import { useUserLabel } from '@/lib/data/useWorkspaceUserLabels';
 
 interface Props {
   cwd: string;
@@ -259,6 +260,8 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
 
   // Owner-side: forward broadcast keystrokes from the active controller into
   // the local PTY. Drop messages from anyone other than the claimed controller.
+  // controllerLabel here is the controller user id (string) — we resolve to a
+  // friendly label below for display only.
   const onRemoteKey = useCallback((data: string, fromUserId: string) => {
     if (!controlOpen) return;
     if (controllerLabel && fromUserId !== controllerLabel) return;
@@ -267,6 +270,8 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
     void api.terminal.write(localId, data);
   }, [controlOpen, controllerLabel]);
   useControlKeystrokeReceiver(aiSessionId, onRemoteKey);
+
+  const driverLabel = useUserLabel(cloud?.workspaceId ?? null, controllerLabel);
 
   return (
     <div className="space-y-2">
@@ -312,7 +317,7 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
             Allow remote control
             {controlOpen && controllerLabel && (
               <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-amber-300">
-                @{controllerLabel.slice(0, 8)} driving
+                {driverLabel ?? controllerLabel.slice(0, 8) + '…'} driving
               </span>
             )}
           </label>

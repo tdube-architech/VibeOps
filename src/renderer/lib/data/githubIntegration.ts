@@ -187,6 +187,16 @@ interface StatusRow {
   has_pat: boolean;
 }
 
+/**
+ * Resolve a workspace member's id to a friendly label. Returns
+ * "@github_username" if linked, otherwise the email, otherwise null.
+ */
+export function pickDisplayLabel(s: WorkspaceGitHubStatus): string {
+  if (s.githubUsername) return `@${s.githubUsername}`;
+  if (s.email) return s.email;
+  return s.userId.slice(0, 8) + '…';
+}
+
 export async function listWorkspaceGitHubStatus(workspaceId: string): Promise<WorkspaceGitHubStatus[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase.rpc('workspace_github_status', { ws_id: workspaceId });
