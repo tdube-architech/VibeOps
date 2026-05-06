@@ -77,10 +77,10 @@ Deno.serve(async (req) => {
   if (targetUserId !== callerId) {
     const { data: owner } = await adminClient
       .from('workspaces')
-      .select('owner_user_id')
+      .select('owner_id')
       .eq('id', project.workspace_id)
       .maybeSingle();
-    if (!owner || owner.owner_user_id !== callerId) {
+    if (!owner || owner.owner_id !== callerId) {
       return json({ error: 'only the workspace owner can grant for other members' }, 403);
     }
   }
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
 
   const { data: ws } = await adminClient
     .from('workspaces')
-    .select('owner_user_id')
+    .select('owner_id')
     .eq('id', project.workspace_id)
     .maybeSingle();
   if (!ws) return json({ error: 'workspace not found' }, 404);
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
   const { data: ownerCreds } = await adminClient
     .from('user_github_credentials')
     .select('encrypted_pat')
-    .eq('user_id', ws.owner_user_id)
+    .eq('user_id', ws.owner_id)
     .maybeSingle();
   if (!ownerCreds?.encrypted_pat) {
     await recordGrant(adminClient, {
