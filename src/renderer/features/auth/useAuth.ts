@@ -29,28 +29,32 @@ async function bootstrapStore(): Promise<void> {
   storeBootstrapped = true;
   try {
     const stored = await api.auth.getSession();
-    const nowSec = Math.floor(Date.now() / 1000);
-    const isExpired = stored?.expires_at !== null && stored?.expires_at !== undefined
-      && stored.expires_at <= nowSec - 30;
-    if (stored && isExpired) {
-      console.warn('[auth] stored access_token expired; signing out');
-      await api.auth.signOut();
-      try { await getSupabase().auth.signOut(); } catch { /* ignore */ }
-      notify({ status: 'unauthenticated', user: null });
-      return;
-    }
     if (stored) {
-      const { error } = await getSupabase().auth.setSession({
+      // Always hand the stored access+refresh tokens to supabase-js. If the
+      // access_token is expired, supabase auto-refreshes using the (long-
+      // lived) refresh_token. Only sign out when the refresh itself fails.
+      const supabase = getSupabase();
+      const { data, error } = await supabase.auth.setSession({
         access_token: stored.access_token,
         refresh_token: stored.refresh_token
       });
-      if (error) {
-        console.warn('[auth] stored session invalid; clearing', error.message);
+      if (error || !data.session) {
+        console.warn('[auth] session restore failed; clearing',
+          error?.message ?? 'no session returned');
         await api.auth.signOut();
-        try { await getSupabase().auth.signOut(); } catch { /* ignore */ }
+        try { await supabase.auth.signOut(); } catch { /* ignore */ }
         notify({ status: 'unauthenticated', user: null });
         return;
       }
+      // Persist the (possibly-refreshed) tokens locally so next boot picks
+      // up the new ones.
+      await api.auth.saveSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_at: data.session.expires_at ?? null,
+        user_id: data.session.user.id,
+        email: data.session.user.email ?? null
+      }).catch(() => undefined);
     }
     const s = await api.auth.getState();
     notify(s);
