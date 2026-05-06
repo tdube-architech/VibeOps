@@ -17,8 +17,6 @@ import {
   createGitHubRepo, listMyGitHubNamespaces, getMyGitHubCredentials, grantRepoAccess,
   checkGitHubRepoExists, type RepoStatus
 } from '@/lib/data/githubIntegration';
-import { setProjectVisibility } from '@/lib/data/projects';
-
 function useGitHubUsernameFromSession(): string | null {
   const [name, setName] = useState<string | null>(null);
   useEffect(() => {
@@ -249,7 +247,9 @@ export function NewProjectWizard({ open, onOpenChange, onCreated }: Props) {
       }
 
       const supabase = getSupabase();
-      const initialVisibility = collabs.some((c) => c.selected) ? 'restricted' : 'workspace';
+      // Default cloud projects to 'workspace' so every workspace member sees them.
+      // Selecting collaborators only drives GitHub repo grants + project_members ACL,
+      // not visibility. Owners can flip to 'restricted' later via Share dialog.
       const { data: row, error } = await supabase.rpc('create_project_for_wizard', {
         ws_id: wsId,
         proj_name: name.trim(),
@@ -258,7 +258,7 @@ export function NewProjectWizard({ open, onOpenChange, onCreated }: Props) {
         proj_repo: repo.repoUrl,
         proj_cat: category.trim() || null,
         proj_tags: tags,
-        proj_vis: initialVisibility
+        proj_vis: 'workspace'
       });
       if (error) throw new Error(error.message);
       const projectId = (row as { id: string }).id;
@@ -280,11 +280,6 @@ export function NewProjectWizard({ open, onOpenChange, onCreated }: Props) {
         const grant = await grantRepoAccess({ projectId, memberUserId: c.userId });
         if (grant.ok) log(`✓ GitHub access granted to ${c.email}`);
         else log(`! GitHub grant failed for ${c.email}: ${grant.error ?? 'unknown'}`);
-      }
-      // If any collaborators selected, keep visibility=restricted; otherwise
-      // workspace (default for everyone in workspace to see).
-      if (initialVisibility === 'restricted') {
-        await setProjectVisibility(projectId, 'restricted');
       }
 
       log('Done.');
