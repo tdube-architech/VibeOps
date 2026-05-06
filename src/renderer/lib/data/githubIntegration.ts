@@ -100,7 +100,7 @@ export async function syncGitHubCredentialsFromSession(): Promise<boolean> {
 
 export interface GrantResponse {
   ok: boolean;
-  status?: 'granted' | 'invited' | 'already-collaborator';
+  status?: 'granted' | 'invited' | 'already-collaborator' | 'self-owner';
   error?: string;
 }
 

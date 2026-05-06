@@ -10,6 +10,8 @@ import {
   type Notification
 } from '@/lib/data/notifications';
 import { acceptInvitationByToken, declineInvitationByToken } from '@/lib/data/members';
+import { listProjects } from '@/lib/data/projects';
+import { grantRepoAccess, getMyGitHubCredentials } from '@/lib/data/githubIntegration';
 
 const KEY = ['notifications'] as const;
 
@@ -114,6 +116,30 @@ export function NotificationBell() {
       qc.invalidateQueries({ queryKey: KEY });
       qc.invalidateQueries({ queryKey: ['workspaces'] });
       qc.invalidateQueries({ queryKey: ['projects'] });
+
+      // Auto-request collaborator access on every cloud project with a repo.
+      // Silently no-ops when invitee has no GitHub linked yet.
+      try {
+        const me = await getMyGitHubCredentials();
+        if (!me?.githubUsername) {
+          toast.info('Set your GitHub username',
+            'Settings → Integrations to receive auto repo access.');
+          return;
+        }
+        const projects = await listProjects({});
+        const eligible = projects.filter((p) => p.repoUrl);
+        if (eligible.length === 0) return;
+        let granted = 0;
+        for (const p of eligible) {
+          const r = await grantRepoAccess({ projectId: p.id });
+          if (r.ok && r.status !== 'self-owner') granted += 1;
+        }
+        if (granted > 0) {
+          toast.success(`Repo access granted on ${granted}/${eligible.length} project(s)`);
+        }
+      } catch (e) {
+        console.warn('[invite] auto repo grant failed', e);
+      }
     } catch (err) {
       toast.error('Could not accept invite', (err as Error).message);
     }

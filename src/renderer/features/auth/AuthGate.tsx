@@ -146,7 +146,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           let granted = 0;
           for (const p of eligible) {
             const r = await grantRepoAccess({ projectId: p.id });
-            if (r.ok) granted++;
+            if (r.ok && r.status !== 'self-owner') granted++;
           }
           if (granted > 0) {
             toast.success(`Repo access granted on ${granted}/${eligible.length} project(s)`);

@@ -22,13 +22,15 @@ export function RepoAccessPanel({ project }: Props) {
       const ms = await listMembers(project.workspaceId);
       let granted = 0;
       let skipped = 0;
+      let selfOwner = 0;
       const results: Array<{ email: string; ok: boolean; error: string | null }> = [];
       for (const m of ms) {
         const r = await grantRepoAccess({ projectId: project.id, memberUserId: m.userId });
+        if (r.status === 'self-owner') { selfOwner += 1; continue; }
         results.push({ email: m.email, ok: r.ok, error: r.error ?? null });
         if (r.ok) granted += 1; else skipped += 1;
       }
-      return { granted, skipped, total: ms.length, results };
+      return { granted, skipped, total: ms.length - selfOwner, results };
     },
     onSuccess: ({ granted, skipped, total, results }) => {
       const failures = results.filter((r) => !r.ok);
@@ -45,6 +47,8 @@ export function RepoAccessPanel({ project }: Props) {
           `${skipped} member(s) skipped${firstErr ? `: ${firstErr}` : ''}`
         );
         console.warn('[grant] partial failures:', failures);
+      } else if (total === 0) {
+        toast.info('Nothing to sync', 'You are the only member with a repo to grant against.');
       } else {
         toast.success('Repo access synced', `${granted} member(s) added as collaborators.`);
       }

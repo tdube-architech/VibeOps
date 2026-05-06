@@ -111,7 +111,8 @@ export function WorkspaceMembersCard() {
       const results = await Promise.all(eligible.map((p) =>
         grantRepoAccess({ projectId: p.id, memberUserId: memberId })
       ));
-      return { total: eligible.length, ok: results.filter((r) => r.ok).length, results };
+      const counted = results.filter((r) => r.status !== 'self-owner');
+      return { total: counted.length, ok: counted.filter((r) => r.ok).length, results: counted };
     },
     onSuccess: ({ total, ok, results }) => {
       if (total === 0) {

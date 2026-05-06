@@ -103,6 +103,10 @@ export function ConnectRepoDialog({ project, open, onOpenChange }: Props) {
       let skipped = 0;
       for (const m of ms) {
         const r = await grantRepoAccess({ projectId: project.id, memberUserId: m.userId });
+        if (r.status === 'self-owner') {
+          log(`· ${m.email} owns the repo (skipped)`);
+          continue;
+        }
         if (r.ok) {
           granted += 1;
           log(`✓ Granted ${m.email}`);

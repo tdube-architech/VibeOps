@@ -27,8 +27,16 @@ interface GrantInput {
 
 interface GrantResult {
   ok: boolean;
-  status?: 'granted' | 'invited' | 'already-collaborator';
+  status?: 'granted' | 'invited' | 'already-collaborator' | 'self-owner';
   error?: string;
+}
+
+type MemberRole = 'owner' | 'editor' | 'viewer';
+
+function rolePermission(role: MemberRole): 'admin' | 'push' | 'pull' {
+  if (role === 'owner') return 'admin';
+  if (role === 'viewer') return 'pull';
+  return 'push';
 }
 
 Deno.serve(async (req) => {
@@ -85,12 +93,15 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { count: targetMember } = await adminClient
+  const { data: targetMemberRow } = await adminClient
     .from('workspace_members')
-    .select('user_id', { count: 'exact', head: true })
+    .select('role')
     .eq('workspace_id', project.workspace_id)
-    .eq('user_id', targetUserId);
-  if (!targetMember) return json({ error: 'target user is not a workspace member' }, 400);
+    .eq('user_id', targetUserId)
+    .maybeSingle();
+  if (!targetMemberRow) return json({ error: 'target user is not a workspace member' }, 400);
+  const targetRole = (targetMemberRow.role as MemberRole | null) ?? 'editor';
+  const permission = rolePermission(targetRole);
 
   const { data: ws } = await adminClient
     .from('workspaces')
@@ -169,14 +180,9 @@ Deno.serve(async (req) => {
   }
 
   if (parsed.owner.toLowerCase() === targetGithubUsername.toLowerCase()) {
-    await recordGrant(adminClient, {
-      projectId: project.id,
-      workspaceId: project.workspace_id,
-      memberUserId: targetUserId,
-      githubUsername: targetGithubUsername,
-      status: 'granted'
-    });
-    return json({ ok: true, status: 'already-collaborator' satisfies GrantResult['status'] }, 200);
+    // Repo owner already has full control — GitHub rejects self-add with 422.
+    // Don't record a project_grants row; client filters this status out of counts.
+    return json({ ok: true, status: 'self-owner' satisfies GrantResult['status'] }, 200);
   }
 
   const ghRes = await fetch(
@@ -188,7 +194,7 @@ Deno.serve(async (req) => {
         Accept: 'application/vnd.github+json',
         'X-GitHub-Api-Version': '2022-11-28'
       },
-      body: JSON.stringify({ permission: 'push' })
+      body: JSON.stringify({ permission })
     }
   );
 
