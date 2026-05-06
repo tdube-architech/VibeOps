@@ -13,6 +13,7 @@ import { ProjectAuditsTab } from './ProjectAuditsTab';
 import { ProjectCodeMapTab } from './ProjectCodeMapTab';
 import { ProjectGitTab } from './ProjectGitTab';
 import { useProjectRealtime } from '@/lib/data/realtime';
+import { PresenceStack } from '@/features/presence/PresenceStack';
 
 export function ProjectDetailRoute() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +45,9 @@ export function ProjectDetailRoute() {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
+        <div className="flex items-center gap-3">
+          {project.source !== 'local' && <PresenceStack projectId={project.id} />}
+        </div>
         <div className="flex gap-2">
           {project.source !== 'local' && (
             <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>

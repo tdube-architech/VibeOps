@@ -1,9 +1,11 @@
-import { ListPlus } from 'lucide-react';
+import { useState } from 'react';
+import { ListPlus, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { AuditFinding } from '@shared/types';
 import { useUpdateFinding } from './useAudits';
 import { useCreateTaskFromFinding } from '@/features/tasks/useTasks';
+import { CommentThread } from '@/features/comments/CommentThread';
 import { toast } from '@/lib/toast';
 
 const SEV_BADGE: Record<AuditFinding['severity'], 'default' | 'secondary' | 'warning' | 'destructive' | 'outline' | 'success'> = {
@@ -17,6 +19,12 @@ const SEV_BADGE: Record<AuditFinding['severity'], 'default' | 'secondary' | 'war
 export function FindingsTable({ findings }: { findings: AuditFinding[] }) {
   const update = useUpdateFinding();
   const createTask = useCreateTaskFromFinding();
+  const [openComments, setOpenComments] = useState<Set<string>>(new Set());
+  const toggleComments = (id: string) => setOpenComments((s) => {
+    const next = new Set(s);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
   if (findings.length === 0) {
     return <div className="text-sm text-muted-foreground">No findings yet.</div>;
   }
@@ -55,8 +63,17 @@ export function FindingsTable({ findings }: { findings: AuditFinding[] }) {
               </Button>
               <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'fixed', expectedVersion: f.version })}>Mark fixed</Button>
               <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'ignored', expectedVersion: f.version })}>Ignore</Button>
+              <Button variant="ghost" size="sm" onClick={() => toggleComments(f.id)}>
+                <MessageSquare className="h-4 w-4" />
+                {openComments.has(f.id) ? 'Hide' : 'Comments'}
+              </Button>
             </div>
           </div>
+          {openComments.has(f.id) && (
+            <div className="mt-3 border-t border-border pt-3">
+              <CommentThread target="finding" targetId={f.id} />
+            </div>
+          )}
         </div>
       ))}
     </div>

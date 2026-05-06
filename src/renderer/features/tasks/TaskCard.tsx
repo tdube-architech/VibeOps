@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUpdateTask, useRemoveTask } from './useTasks';
+import { CommentThread } from '@/features/comments/CommentThread';
 import { toast } from '@/lib/toast';
 import type { Task, TaskPriority, TaskStatus } from '@shared/types';
 
@@ -123,6 +124,9 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
             <div className="text-[10px] text-muted-foreground">
               Created {new Date(task.createdAt).toLocaleString()}
               {task.completedAt && ` · Completed ${new Date(task.completedAt).toLocaleString()}`}
+            </div>
+            <div className="border-t border-border/40 pt-2">
+              <CommentThread target="task" targetId={task.id} />
             </div>
           </div>
         )}

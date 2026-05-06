@@ -5,6 +5,7 @@ import { StatCards } from '@/features/dashboard/StatCards';
 import { RecentFindingsPanel } from '@/features/dashboard/RecentFindingsPanel';
 import { HighestRiskPanel } from '@/features/dashboard/HighestRiskPanel';
 import { useDashboardSummary } from '@/features/dashboard/useDashboard';
+import { ActivityFeed } from '@/features/activity/ActivityFeed';
 
 export function DashboardRoute() {
   const { data: summary, isLoading } = useDashboardSummary();
@@ -28,6 +29,7 @@ export function DashboardRoute() {
         <div className="space-y-4">
           <HighestRiskPanel summary={summary} />
           <RecentFindingsPanel summary={summary} />
+          <ActivityFeed />
         </div>
       </div>
       {isLoading && <div className="text-xs text-muted-foreground">Loading dashboard…</div>}
