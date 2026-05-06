@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TerminalView } from '@/features/terminal/TerminalView';
 import { SpectatorPanel } from '@/features/terminal/SpectatorPanel';
 import { DiffReviewPanel } from '@/features/terminal/DiffReviewPanel';
+import { SetupCloneWizard } from '@/features/projects/SetupCloneWizard';
 import type { Project } from '@shared/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -11,8 +13,21 @@ interface OwnerContext { aiSessionId: string; cwd: string; sessionStartSha: stri
 
 export function ProjectTerminalTab({ project }: { project: Project }) {
   const [owner, setOwner] = useState<OwnerContext | null>(null);
+  const qc = useQueryClient();
+  const isCloud = UUID_RE.test(project.id) && Boolean(project.workspaceId);
 
   if (!project.localPath) {
+    if (isCloud) {
+      return (
+        <SetupCloneWizard
+          project={project}
+          onSetupComplete={() => {
+            qc.invalidateQueries({ queryKey: ['projects'] });
+            qc.invalidateQueries({ queryKey: ['projects', project.id] });
+          }}
+        />
+      );
+    }
     return (
       <Card>
         <CardHeader>
@@ -24,7 +39,6 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
       </Card>
     );
   }
-  const isCloud = UUID_RE.test(project.id) && Boolean(project.workspaceId);
   const cloudProps = isCloud
     ? {
         cloud: { projectId: project.id, workspaceId: project.workspaceId },

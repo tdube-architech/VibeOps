@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddProjectButton } from '@/features/projects/AddProjectButton';
+import { NewProjectButton } from '@/features/projects/NewProjectButton';
 import { ProjectTable } from '@/features/projects/ProjectTable';
 import { StatCards } from '@/features/dashboard/StatCards';
 import { RecentFindingsPanel } from '@/features/dashboard/RecentFindingsPanel';
@@ -16,7 +17,10 @@ export function DashboardRoute() {
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-muted-foreground">High-level view of all VibeOps projects.</p>
         </div>
-        <AddProjectButton />
+        <div className="flex gap-2">
+          <NewProjectButton />
+          <AddProjectButton />
+        </div>
       </div>
       <StatCards summary={summary} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

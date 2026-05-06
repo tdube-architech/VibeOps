@@ -10,6 +10,7 @@ import { AccountCard } from '@/features/auth/AccountCard';
 import { MigrationCard } from '@/features/migrate/MigrationCard';
 import { WorkspaceMembersCard } from '@/features/workspaces/WorkspaceMembersCard';
 import { BillingCard } from '@/features/billing/BillingCard';
+import { GitHubIntegrationCard } from '@/features/settings/GitHubIntegrationCard';
 import type { AIProviderId } from '@shared/types';
 
 const PROVIDERS: AIProviderId[] = ['anthropic', 'mock'];
@@ -32,6 +33,7 @@ export function SettingsRoute() {
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="workspace">Workspace</TabsTrigger>
           <TabsTrigger value="ai">AI Providers</TabsTrigger>
+          <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="audit">Audit Engine</TabsTrigger>
           <TabsTrigger value="data">Data</TabsTrigger>
           <TabsTrigger value="updates">Updates</TabsTrigger>
@@ -60,6 +62,10 @@ export function SettingsRoute() {
               {PROVIDERS.map((id) => <ProviderForm key={id} settings={settings} providerId={id} />)}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-4">
+          <GitHubIntegrationCard />
         </TabsContent>
 
         <TabsContent value="audit" className="space-y-4">

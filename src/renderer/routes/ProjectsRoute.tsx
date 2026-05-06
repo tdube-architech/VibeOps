@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AddProjectButton } from '@/features/projects/AddProjectButton';
+import { NewProjectButton } from '@/features/projects/NewProjectButton';
 import { ProjectTable } from '@/features/projects/ProjectTable';
 
 export function ProjectsRoute() {
@@ -13,7 +14,10 @@ export function ProjectsRoute() {
           <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
           <p className="text-sm text-muted-foreground">All registered local project folders.</p>
         </div>
-        <AddProjectButton />
+        <div className="flex gap-2">
+          <NewProjectButton />
+          <AddProjectButton />
+        </div>
       </div>
       <Card>
         <CardHeader>

@@ -250,6 +250,18 @@ export async function removeProject(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function setProjectVisibility(
+  projectId: string,
+  visibility: 'workspace' | 'private' | 'restricted'
+): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('projects')
+    .update({ visibility })
+    .eq('id', projectId);
+  if (error) throw new Error(error.message);
+}
+
 export async function setProjectLocalPath(projectId: string, localPath: string): Promise<void> {
   const supabase = getSupabase();
   const userId = await getCurrentUserId();
@@ -257,4 +269,20 @@ export async function setProjectLocalPath(projectId: string, localPath: string):
     .from('project_user_state')
     .upsert({ project_id: projectId, user_id: userId, local_path: localPath });
   if (error) throw new Error(error.message);
+
+  // Best-effort: if the project has no repo_url yet, populate it from the
+  // origin remote at this path so other members can clone the same repo.
+  try {
+    const remote = await api.projectsExtra.gitRemoteUrl(localPath);
+    if (remote.url) {
+      const { data: existing } = await supabase
+        .from('projects')
+        .select('repo_url')
+        .eq('id', projectId)
+        .maybeSingle();
+      if (existing && !existing.repo_url) {
+        await supabase.from('projects').update({ repo_url: remote.url }).eq('id', projectId);
+      }
+    }
+  } catch { /* repo_url backfill is non-critical */ }
 }

@@ -13,7 +13,10 @@ import { ProjectAuditsTab } from './ProjectAuditsTab';
 import { ProjectCodeMapTab } from './ProjectCodeMapTab';
 import { ProjectGitTab } from './ProjectGitTab';
 import { ProjectTerminalTab } from './ProjectTerminalTab';
+import { ProjectDesignTab } from './ProjectDesignTab';
 import { useProjectRealtime } from '@/lib/data/realtime';
+import { useProjectActivity } from '@/lib/data/projectActivity';
+import { ActivityPanel } from '@/features/projects/ActivityPanel';
 import { PresenceStack } from '@/features/presence/PresenceStack';
 
 export function ProjectDetailRoute() {
@@ -21,6 +24,8 @@ export function ProjectDetailRoute() {
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id);
   useProjectRealtime(id);
+  const isCloud = project?.source !== 'local' && Boolean(project?.localPath);
+  useProjectActivity(isCloud ? project?.id : null, isCloud ? project?.localPath : null);
   const archive = useArchiveProject();
   const unarchive = useUnarchiveProject();
   const remove = useRemoveProject();
@@ -82,14 +87,21 @@ export function ProjectDetailRoute() {
           <TabsTrigger value="code">Code Map</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
           <TabsTrigger value="terminal">Terminal</TabsTrigger>
+          <TabsTrigger value="design">Design</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview"><ProjectOverviewTab project={project} /></TabsContent>
+        <TabsContent value="overview">
+          <div className="space-y-3">
+            {isCloud && <ActivityPanel projectId={project.id} />}
+            <ProjectOverviewTab project={project} />
+          </div>
+        </TabsContent>
         <TabsContent value="scan"><ProjectScanTab project={project} /></TabsContent>
         <TabsContent value="memory"><ProjectMemoryTab project={project} /></TabsContent>
         <TabsContent value="audits"><ProjectAuditsTab project={project} /></TabsContent>
         <TabsContent value="code"><ProjectCodeMapTab project={project} /></TabsContent>
         <TabsContent value="git"><ProjectGitTab project={project} /></TabsContent>
         <TabsContent value="terminal"><ProjectTerminalTab project={project} /></TabsContent>
+        <TabsContent value="design"><ProjectDesignTab project={project} /></TabsContent>
       </Tabs>
 
       <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />

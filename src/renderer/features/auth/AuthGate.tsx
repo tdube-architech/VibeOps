@@ -6,6 +6,10 @@ import { getSupabase } from '@/lib/supabase';
 import { useAuth, exchangeCodeForSession } from './useAuth';
 import { SignInScreen } from './SignInScreen';
 import { endAllMyActiveSessions } from '@/lib/data/aiSessions';
+import { listProjects } from '@/lib/data/projects';
+import {
+  grantRepoAccess, getMyGitHubCredentials, syncGitHubCredentialsFromSession
+} from '@/lib/data/githubIntegration';
 
 const PENDING_INVITE_KEY = 'vibeops:pending-invite-token';
 
@@ -31,7 +35,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         qc.invalidateQueries({ queryKey: ['ai-sessions'] });
       }
     });
+    // First-pass capture of GitHub creds for users whose session restored
+    // from cache. The deep-link handler covers the fresh-OAuth case.
+    void syncGitHubCredentialsFromSession().then(() => {
+      qc.invalidateQueries({ queryKey: ['github'] });
+    });
   }, [state?.status, qc]);
+
 
   useEffect(() => {
     return api.auth.onDeepLink(async (rawUrl) => {
@@ -56,6 +66,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           } else {
             console.info('[auth] signed in');
             toast.success('Signed in');
+            // Capture the fresh provider token + username right now — the
+            // session.provider_token only sticks around for the SIGNED_IN
+            // moment, so we have to grab it before any cache rotation.
+            const captured = await syncGitHubCredentialsFromSession();
+            qc.invalidateQueries({ queryKey: ['github'] });
+            if (!captured) {
+              console.warn('[auth] no provider_token captured — Supabase may have stripped it. User can click Reconnect.');
+            }
           }
           return;
         }
@@ -89,6 +107,31 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         qc.invalidateQueries({ queryKey: ['workspaces'] });
         qc.invalidateQueries({ queryKey: ['projects'] });
         qc.invalidateQueries({ queryKey: ['notifications'] });
+
+        // Auto-request collaborator access on every cloud project that has a
+        // repo URL. Edge function silently fails when the workspace owner
+        // has no PAT or this user has no github_username — we just log.
+        try {
+          const me = await getMyGitHubCredentials();
+          if (!me?.githubUsername) {
+            toast.info('Set your GitHub username',
+              'Settings → Integrations to receive auto repo access.');
+            return;
+          }
+          const projects = await listProjects({});
+          const eligible = projects.filter((p) => p.repoUrl);
+          if (eligible.length === 0) return;
+          let granted = 0;
+          for (const p of eligible) {
+            const r = await grantRepoAccess({ projectId: p.id });
+            if (r.ok) granted++;
+          }
+          if (granted > 0) {
+            toast.success(`Repo access granted on ${granted}/${eligible.length} project(s)`);
+          }
+        } catch (e) {
+          console.warn('[invite] auto repo grant failed', e);
+        }
       } else {
         toast.error('Could not accept invitation', result.message ?? 'unknown error');
         window.localStorage.removeItem(PENDING_INVITE_KEY);

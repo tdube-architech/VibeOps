@@ -20,7 +20,8 @@ import {
   registerAuthHandlers,
   registerMigrateHandlers,
   registerTerminalHandlers,
-  registerAiSessionHandlers
+  registerAiSessionHandlers,
+  registerActivityHandlers
 } from './ipc/handlers';
 import { AuthService } from './auth/service';
 import { setupProtocolHandler } from './auth/protocol';
@@ -32,6 +33,8 @@ import { runMigrations } from './db/migrate';
 import { getLogger } from './logger';
 import { ProjectsRepo } from './projects/repo';
 import { ProjectsService } from './projects/service';
+import { CloneService } from './projects/clone-service';
+import { ProjectActivityService } from './projects/activity-service';
 import { ScansRepo } from './scanner/repo';
 import { MemoriesRepo } from './memory/repo';
 import { MemoryService } from './memory/service';
@@ -119,14 +122,16 @@ async function bootstrap(): Promise<void> {
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://avatars.githubusercontent.com; connect-src 'self' ws://localhost:5173 http://localhost:5173 https://*.supabase.co wss://*.supabase.co"
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://avatars.githubusercontent.com https://cdn.simpleicons.org; connect-src 'self' ws://localhost:5173 http://localhost:5173 https://*.supabase.co wss://*.supabase.co"
         ]
       }
     });
   });
 
+  const cloneService = new CloneService({ logger: log, getMainWindow: () => mainWindow });
+
   registerCoreHandlers();
-  registerProjectsHandlers({ service: projectsService, getMainWindow: () => mainWindow });
+  registerProjectsHandlers({ service: projectsService, cloneService, getMainWindow: () => mainWindow });
   registerScannerHandlers({
     scansRepo,
     projectsService,
@@ -179,9 +184,12 @@ async function bootstrap(): Promise<void> {
   registerTerminalHandlers(terminalService);
   const diffWatcher = new DiffWatcherService({ logger: log, getMainWindow: () => mainWindow });
   registerAiSessionHandlers(diffWatcher);
+  const activityService = new ProjectActivityService({ logger: log, getMainWindow: () => mainWindow });
+  registerActivityHandlers(activityService);
   app.on('before-quit', () => {
     terminalService.killAll();
     diffWatcher.stopAll();
+    activityService.stopAll();
   });
 
   mainWindow = createMainWindow();

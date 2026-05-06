@@ -12,9 +12,11 @@ import type {
 import { detectGit } from '@main/scanner/detectors/git';
 import { getGitInfo } from '@main/projects/git-history';
 import { ProjectsService, DuplicatePathError, InvalidPathError } from '@main/projects/service';
+import type { CloneService } from '@main/projects/clone-service';
 
 export interface ProjectsContext {
   service: ProjectsService;
+  cloneService: CloneService;
   getMainWindow: () => BrowserWindow | null;
 }
 
@@ -107,5 +109,38 @@ export function registerProjectsHandlers(ctx: ProjectsContext): void {
       const info = await getGitInfo(project.localPath, { commitLimit: 50 });
       return ok(info);
     } catch (e) { return fail(e); }
+  });
+
+  ipcMain.handle(IpcChannels.projectsGitRemoteUrl,
+    async (_e, cwd: string): Promise<Result<{ url: string | null }>> => {
+      try { return ok({ url: await ctx.cloneService.detectRemoteUrl(cwd) }); }
+      catch (e) { return fail(e); }
+    }
+  );
+
+  ipcMain.handle(IpcChannels.projectsGitDefaultBranch,
+    async (_e, cwd: string): Promise<Result<{ branch: string | null }>> => {
+      try { return ok({ branch: await ctx.cloneService.detectDefaultBranch(cwd) }); }
+      catch (e) { return fail(e); }
+    }
+  );
+
+  ipcMain.handle(IpcChannels.projectsFindClone,
+    async (_e, payload: { repoUrl: string; candidates: string[] }): Promise<Result<{ path: string | null }>> => {
+      try { return ok({ path: await ctx.cloneService.findExistingClone(payload.repoUrl, payload.candidates) }); }
+      catch (e) { return fail(e); }
+    }
+  );
+
+  ipcMain.handle(IpcChannels.projectsCloneStart,
+    (_e, payload: { repoUrl: string; targetDir: string }): Result<{ jobId: string }> => {
+      try { return ok(ctx.cloneService.startClone(payload)); }
+      catch (e) { return fail(e); }
+    }
+  );
+
+  ipcMain.handle(IpcChannels.projectsDefaultCodeRoot, (): Result<{ root: string }> => {
+    try { return ok({ root: ctx.cloneService.defaultCodeRoot() }); }
+    catch (e) { return fail(e); }
   });
 }

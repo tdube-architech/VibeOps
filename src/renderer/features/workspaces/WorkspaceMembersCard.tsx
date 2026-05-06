@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2, UserPlus, Copy, X } from 'lucide-react';
+import { Trash2, UserPlus, Copy, X, GitBranch } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
   removeMember, revokeInvitation, updateMemberRole,
   type MemberRole
 } from '@/lib/data/members';
+import { listProjects } from '@/lib/data/projects';
+import { grantRepoAccess, listWorkspaceGitHubStatus } from '@/lib/data/githubIntegration';
 
 const MEMBERS_KEY = (ws: string) => ['workspace-members', ws] as const;
 const INVITES_KEY = (ws: string) => ['workspace-invites', ws] as const;
@@ -84,6 +86,34 @@ export function WorkspaceMembersCard() {
   const canInvite = myRole === 'owner' || myRole === 'editor';
   const canManageRoles = myRole === 'owner';
 
+  const ghStatus = useQuery({
+    queryKey: validWs && wsId ? ['workspace-gh-status', wsId] : ['workspace-gh-status', '__none__'],
+    queryFn: () => listWorkspaceGitHubStatus(wsId!),
+    enabled: validWs && state?.status === 'authenticated'
+  });
+
+  const grantAll = useMutation({
+    mutationFn: async (memberId: string) => {
+      const projects = await listProjects({ workspaceId: wsId! });
+      const eligible = projects.filter((p) => p.repoUrl);
+      const results = await Promise.all(eligible.map((p) =>
+        grantRepoAccess({ projectId: p.id, memberUserId: memberId })
+      ));
+      return { total: eligible.length, ok: results.filter((r) => r.ok).length, results };
+    },
+    onSuccess: ({ total, ok, results }) => {
+      if (total === 0) {
+        toast.info('No repos to grant', 'No projects in this workspace have a repo_url yet.');
+      } else if (ok === total) {
+        toast.success('GitHub access granted', `${ok}/${total} project(s)`);
+      } else {
+        const firstErr = results.find((r) => !r.ok)?.error ?? 'see logs';
+        toast.error(`Partial grant ${ok}/${total}`, firstErr);
+      }
+    },
+    onError: (e) => toast.error('Grant failed', (e as Error).message)
+  });
+
   function copyInvite() {
     if (!latestInviteUrl) return;
     void navigator.clipboard.writeText(latestInviteUrl);
@@ -109,14 +139,19 @@ export function WorkspaceMembersCard() {
             <div className="text-muted-foreground">Loading…</div>
           ) : (
             <div className="space-y-1">
-              {(members.data ?? []).map((m) => (
+              {(members.data ?? []).map((m) => {
+                const ghEntry = ghStatus.data?.find((s) => s.userId === m.userId);
+                return (
                 <div key={m.userId} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
                   <div className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-xs font-bold">
                     {initials(m.email)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{m.displayName ?? m.email.split('@')[0]}</div>
-                    <div className="text-xs text-muted-foreground truncate">{m.email}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {m.email}
+                      {ghEntry?.githubUsername ? <> · <span className="font-mono">@{ghEntry.githubUsername}</span></> : ' · no GitHub linked'}
+                    </div>
                   </div>
                   {canManageRoles && m.userId !== myUserId ? (
                     <select
@@ -128,6 +163,17 @@ export function WorkspaceMembersCard() {
                     </select>
                   ) : (
                     <Badge variant="secondary">{m.role}</Badge>
+                  )}
+                  {canManageRoles && m.userId !== myUserId && ghEntry?.githubUsername && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title={`Add @${ghEntry.githubUsername} as collaborator on every project repo in this workspace`}
+                      onClick={() => grantAll.mutate(m.userId)}
+                      disabled={grantAll.isPending}
+                    >
+                      <GitBranch className="h-4 w-4" />
+                    </Button>
                   )}
                   {(canManageRoles && m.userId !== myUserId && m.role !== 'owner') && (
                     <Button
@@ -141,7 +187,8 @@ export function WorkspaceMembersCard() {
                     </Button>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

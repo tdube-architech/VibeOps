@@ -133,6 +133,34 @@ export interface AiSessionDiffEvent {
   ts: string;
 }
 
+export interface CloneProgressEvent {
+  jobId: string;
+  line: string;
+  done?: boolean;
+  ok?: boolean;
+  exitCode?: number | null;
+  cwd?: string;
+  error?: string;
+}
+
+export interface DirtyFileEvent {
+  projectId: string;
+  filePath: string;
+  hash: string | null;
+  sizeBytes: number | null;
+  modifiedAt: string;
+  deleted: boolean;
+}
+
+export interface CommitEvent {
+  projectId: string;
+  sha: string;
+  shortSha: string;
+  message: string;
+  branch: string | null;
+  ts: string;
+}
+
 export interface AppInfo {
   /** Semver core version, e.g. "0.0.4". */
   version: string;

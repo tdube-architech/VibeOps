@@ -191,7 +191,22 @@ export const api = {
     gitStatus: (projectId: string): Promise<GitStatus> =>
       unwrap(ipcRenderer.invoke(IpcChannels.projectsGitStatus, projectId)),
     gitInfo: (projectId: string): Promise<GitInfo> =>
-      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitInfo, projectId))
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitInfo, projectId)),
+    gitRemoteUrl: (cwd: string): Promise<{ url: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitRemoteUrl, cwd)),
+    gitDefaultBranch: (cwd: string): Promise<{ branch: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsGitDefaultBranch, cwd)),
+    findClone: (repoUrl: string, candidates: string[]): Promise<{ path: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsFindClone, { repoUrl, candidates })),
+    defaultCodeRoot: (): Promise<{ root: string }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsDefaultCodeRoot)),
+    cloneStart: (repoUrl: string, targetDir: string): Promise<{ jobId: string }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectsCloneStart, { repoUrl, targetDir })),
+    onCloneProgress: (cb: (e: import('@shared/types').CloneProgressEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: import('@shared/types').CloneProgressEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.projectsCloneProgress, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.projectsCloneProgress, handler);
+    }
   },
   migrate: {
     status: (): Promise<{ unmigrated: Project[]; alreadyMigrated: number; skippedAt: string | null }> =>
@@ -221,6 +236,22 @@ export const api = {
       const handler = (_e: unknown, evt: { sessionId: string; exitCode: number | null; endedAt: string }) => cb(evt);
       ipcRenderer.on(IpcChannels.terminalExit, handler);
       return () => ipcRenderer.removeListener(IpcChannels.terminalExit, handler);
+    }
+  },
+  projectActivity: {
+    start: (projectId: string, cwd: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectActivityStart, { projectId, cwd })),
+    stop: (projectId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.projectActivityStop, projectId)),
+    onFileDirty: (cb: (e: import('@shared/types').DirtyFileEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: import('@shared/types').DirtyFileEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.projectActivityFileDirty, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.projectActivityFileDirty, handler);
+    },
+    onCommit: (cb: (e: import('@shared/types').CommitEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: import('@shared/types').CommitEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.projectActivityCommit, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.projectActivityCommit, handler);
     }
   },
   aiSession: {

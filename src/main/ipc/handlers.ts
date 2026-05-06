@@ -33,3 +33,4 @@ export { registerAuthHandlers } from './auth-handlers';
 export { registerMigrateHandlers } from './migrate-handlers';
 export { registerTerminalHandlers } from './terminal-handlers';
 export { registerAiSessionHandlers } from './ai-session-handlers';
+export { registerActivityHandlers } from './activity-handlers';
