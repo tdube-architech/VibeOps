@@ -44,6 +44,8 @@ interface Props {
   keepSessionOnUnmount?: boolean;
   /** Fires when user clicks Pop out — parent can hide this cell. */
   onPopOutRequested?: () => void;
+  /** Fires whenever the local terminal session id changes (start / exit). */
+  onLocalSessionChange?: (localTerminalId: string | null) => void;
 }
 
 interface Preset { label: string; command: string; args: string[]; provider: string }
@@ -60,7 +62,8 @@ const COMMAND_PRESETS: Preset[] = [
 
 export function TerminalView({
   cwd, command, args, label, cloud, onAiSessionChange, hidePopout,
-  terminalNumber, attach, keepSessionOnUnmount, onPopOutRequested
+  terminalNumber, attach, keepSessionOnUnmount, onPopOutRequested,
+  onLocalSessionChange
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -78,12 +81,14 @@ export function TerminalView({
   const aiSessionIdRef = useRef<string | null>(null);
   const cloudProjectIdRef = useRef<string | null>(cloud?.projectId ?? null);
   const onAiSessionChangeRef = useRef(onAiSessionChange);
+  const onLocalSessionChangeRef = useRef(onLocalSessionChange);
   /** Set when the user clicks Stop so we can suppress trailing chunks and
    *  reset the UI to a fresh blank state instead of showing exit chrome. */
   const userStoppedRef = useRef(false);
 
   useEffect(() => { cloudProjectIdRef.current = cloud?.projectId ?? null; }, [cloud?.projectId]);
   useEffect(() => { onAiSessionChangeRef.current = onAiSessionChange; }, [onAiSessionChange]);
+  useEffect(() => { onLocalSessionChangeRef.current = onLocalSessionChange; }, [onLocalSessionChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -200,7 +205,10 @@ export function TerminalView({
       setControllerLabel(null);
       localSessionIdRef.current = null;
       void api.aiSession.stopWatch(evt.sessionId).catch(() => {});
-      if (activeSessionIdRef.current === evt.sessionId) activeSessionIdRef.current = null;
+      if (activeSessionIdRef.current === evt.sessionId) {
+        activeSessionIdRef.current = null;
+        onLocalSessionChangeRef.current?.(null);
+      }
     });
     const offDiff = api.aiSession.onDiff((evt) => {
       if (evt.clientLocalId !== activeSessionIdRef.current) return;
@@ -264,6 +272,7 @@ export function TerminalView({
 
       const s = await api.terminal.start(startArgs);
       activeSessionIdRef.current = s.id;
+      onLocalSessionChange?.(s.id);
       term?.clear();
       term?.writeln(`\x1b[2m[started ${s.command} in ${s.cwd}]\x1b[0m`);
       setSession(s);

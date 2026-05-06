@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { UpdateBanner } from '@/features/update/UpdateBanner';
+import { reconcileLiveSessions } from '@/features/terminal/terminalStore';
 import { MigrationGate } from '@/features/migrate/MigrationGate';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useActiveWorkspaceId, useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
@@ -28,6 +29,11 @@ export function AppShell() {
   const qc = useQueryClient();
   useEnsureDefaultWorkspace();
   useWorkspaceTasksRealtime(useActiveWorkspaceId());
+
+  // On app boot, reconcile persisted terminal cells against the main
+  // process's live sessions list — clears stale localTerminalId entries so
+  // the user can re-Start cells whose PTY died (e.g. after a crash).
+  useEffect(() => { void reconcileLiveSessions(); }, []);
 
   useEffect(() => {
     return api.pipeline.onProgress((evt: PipelineEvent) => {

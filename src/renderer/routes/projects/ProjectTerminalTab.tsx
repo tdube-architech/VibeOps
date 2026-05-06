@@ -8,18 +8,13 @@ import { SpectatorPanel } from '@/features/terminal/SpectatorPanel';
 import { DiffReviewPanel } from '@/features/terminal/DiffReviewPanel';
 import { SetupCloneWizard } from '@/features/projects/SetupCloneWizard';
 import { api } from '@/lib/api';
+import {
+  useCells, addCell, removeCell, setTargetCount, ensureProjectInitialized,
+  updateCellSession, type PersistedCell
+} from '@/features/terminal/terminalStore';
 import type { Project } from '@shared/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-interface OwnerContext { aiSessionId: string; cwd: string; sessionStartSha: string | null }
-interface Cell { id: string }
-
-let cellCounter = 0;
-function newCellId(): string {
-  cellCounter += 1;
-  return `cell_${cellCounter}_${Math.random().toString(36).slice(2, 8)}`;
-}
 
 const LAYOUT_PRESETS: Array<{ label: string; count: number }> = [
   { label: '1×1', count: 1 },
@@ -33,29 +28,31 @@ function colsFor(n: number): number {
 }
 
 export function ProjectTerminalTab({ project }: { project: Project }) {
-  const [cells, setCells] = useState<Cell[]>(() => [{ id: newCellId() }]);
-  const [owners, setOwners] = useState<Record<string, OwnerContext>>({});
-  // Cells whose terminal is currently displayed in a separate window. The
-  // TerminalView stays mounted (so it holds the session) but is hidden via
-  // CSS until the pop-out window is closed.
-  const [poppedOut, setPoppedOut] = useState<Record<string, true>>({});
   const qc = useQueryClient();
   const isCloud = UUID_RE.test(project.id) && Boolean(project.workspaceId);
+  const [poppedOut, setPoppedOut] = useState<Record<string, true>>({});
 
-  // Listen for pop-out window close events so we can un-hide the originating cell.
+  // Lazily initialize the project's cell list to a single empty cell.
+  useEffect(() => {
+    if (project.localPath) ensureProjectInitialized(project.id);
+  }, [project.id, project.localPath]);
+
+  const cells = useCells(project.localPath ? project.id : null);
+
+  // Listen for pop-out window close events to un-hide the originating cell.
   useEffect(() => {
     return api.terminal.onPopoutClosed((evt) => {
       if (!evt.aiSessionId) return;
-      // Find the cell whose owner matches this aiSessionId.
       setPoppedOut((prev) => {
         const next = { ...prev };
         for (const [cellId] of Object.entries(prev)) {
-          if (owners[cellId]?.aiSessionId === evt.aiSessionId) delete next[cellId];
+          const cell = cells.find((c) => c.id === cellId);
+          if (cell?.aiSessionId === evt.aiSessionId) delete next[cellId];
         }
         return next;
       });
     });
-  }, [owners]);
+  }, [cells]);
 
   if (!project.localPath) {
     if (isCloud) {
@@ -81,53 +78,10 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
     );
   }
 
-  const cols = colsFor(cells.length);
-  const latestOwner = cells
-    .slice()
+  const cols = colsFor(Math.max(1, cells.length));
+  const latestOwner = [...cells]
     .reverse()
-    .map((c) => owners[c.id])
-    .find((o): o is OwnerContext => Boolean(o));
-
-  function setTargetCount(target: number): void {
-    setCells((prev) => {
-      if (prev.length === target) return prev;
-      if (prev.length < target) {
-        const add = Array.from({ length: target - prev.length }, () => ({ id: newCellId() }));
-        return [...prev, ...add];
-      }
-      const trimmed = prev.slice(0, target);
-      const trimmedIds = new Set(trimmed.map((c) => c.id));
-      setOwners((o) => {
-        const next: Record<string, OwnerContext> = {};
-        for (const [k, v] of Object.entries(o)) if (trimmedIds.has(k)) next[k] = v;
-        return next;
-      });
-      setPoppedOut((p) => {
-        const next: Record<string, true> = {};
-        for (const k of Object.keys(p)) if (trimmedIds.has(k)) next[k] = true;
-        return next;
-      });
-      return trimmed;
-    });
-  }
-
-  function closeCell(id: string): void {
-    setCells((prev) => prev.filter((c) => c.id !== id));
-    setOwners((o) => {
-      const next = { ...o };
-      delete next[id];
-      return next;
-    });
-    setPoppedOut((p) => {
-      const next = { ...p };
-      delete next[id];
-      return next;
-    });
-  }
-
-  function addCell(): void {
-    setCells((prev) => (prev.length >= 16 ? prev : [...prev, { id: newCellId() }]));
-  }
+    .find((c): c is PersistedCell & { aiSessionId: string } => Boolean(c.aiSessionId));
 
   return (
     <div className="space-y-3">
@@ -150,7 +104,7 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
                       );
                       if (!ok) return;
                     }
-                    setTargetCount(p.count);
+                    setTargetCount(project.id, p.count);
                   }}
                 >
                   {p.label}
@@ -160,7 +114,7 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
                 size="sm"
                 variant="outline"
                 className="h-7 px-2 text-[11px]"
-                onClick={addCell}
+                onClick={() => addCell(project.id)}
                 disabled={cells.length >= 16}
               >
                 <Plus className="h-3 w-3" /> Add
@@ -170,7 +124,7 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
           <CardDescription>
             Spawn shells or AI CLIs rooted in <code className="text-xs">{project.localPath}</code>.
             {isCloud
-              ? ' Pop a tile out to a separate window — the session keeps running. Close the popped-out window to bring it back. Click × to end a session.'
+              ? ' Sessions persist across page changes — only × ends them. Pop a tile out to a separate window; the session keeps running.'
               : ' Output streams locally only — migrate the project to share with teammates.'}
           </CardDescription>
         </CardHeader>
@@ -181,10 +135,17 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
           >
             {cells.map((cell, idx) => {
               const isPopped = Boolean(poppedOut[cell.id]);
+              const attach = cell.localTerminalId && cell.aiSessionId
+                ? {
+                    localTerminalId: cell.localTerminalId,
+                    aiSessionId: cell.aiSessionId,
+                    sessionStartSha: cell.sessionStartSha
+                  }
+                : undefined;
               return (
                 <div key={cell.id} className="relative rounded-md border border-border p-2">
                   <button
-                    onClick={() => closeCell(cell.id)}
+                    onClick={() => removeCell(project.id, cell.id)}
                     className="absolute right-1 top-1 z-10 rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
                     title="End this terminal session"
                   >
@@ -206,16 +167,29 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
                     <TerminalView
                       cwd={project.localPath}
                       terminalNumber={idx + 1}
+                      keepSessionOnUnmount
+                      {...(attach ? { attach } : {})}
                       {...(isCloud
                         ? {
                             cloud: { projectId: project.id, workspaceId: project.workspaceId },
                             onAiSessionChange: (info) => {
-                              setOwners((prev) => {
-                                const next = { ...prev };
-                                if (info) next[cell.id] = info;
-                                else delete next[cell.id];
-                                return next;
-                              });
+                              if (info) {
+                                updateCellSession(project.id, cell.id, {
+                                  aiSessionId: info.aiSessionId,
+                                  localTerminalId: null, // refreshed by TerminalView's own ref tracking
+                                  sessionStartSha: info.sessionStartSha
+                                });
+                                // attach hook will publish localTerminalId via onLocalSessionChange below
+                              } else {
+                                updateCellSession(project.id, cell.id, {
+                                  aiSessionId: null,
+                                  localTerminalId: null,
+                                  sessionStartSha: null
+                                });
+                              }
+                            },
+                            onLocalSessionChange: (id) => {
+                              updateCellSession(project.id, cell.id, { localTerminalId: id });
                             },
                             onPopOutRequested: () => {
                               setPoppedOut((p) => ({ ...p, [cell.id]: true }));
@@ -234,7 +208,10 @@ export function ProjectTerminalTab({ project }: { project: Project }) {
       {isCloud && latestOwner && (
         <DiffReviewPanel
           sessionId={latestOwner.aiSessionId}
-          ownerContext={{ cwd: latestOwner.cwd, sessionStartSha: latestOwner.sessionStartSha }}
+          ownerContext={{
+            cwd: project.localPath,
+            sessionStartSha: latestOwner.sessionStartSha
+          }}
         />
       )}
       {isCloud && <SpectatorPanel projectId={project.id} />}
