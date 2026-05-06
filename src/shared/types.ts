@@ -108,7 +108,12 @@ export interface ChatMessage {
 }
 
 export interface AppInfo {
+  /** Semver core version, e.g. "0.0.4". */
   version: string;
+  /** UTC mmddhhmm of the build, e.g. "05061230". */
+  buildTimestamp: string;
+  /** Convenience composite, e.g. "0.0.4.05061230". Use this in UI. */
+  displayVersion: string;
   electronVersion: string;
   platform: NodeJS.Platform;
 }

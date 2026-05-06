@@ -4,11 +4,17 @@ import type { AppInfo } from '@shared/types';
 
 export function registerCoreHandlers(): void {
   ipcMain.handle(IpcChannels.ping, () => 'pong');
-  ipcMain.handle(IpcChannels.appVersion, (): AppInfo => ({
-    version: app.getVersion(),
-    electronVersion: process.versions.electron,
-    platform: process.platform
-  }));
+  ipcMain.handle(IpcChannels.appVersion, (): AppInfo => {
+    const version = app.getVersion();
+    const ts = typeof __BUILD_TIMESTAMP__ === 'string' ? __BUILD_TIMESTAMP__ : '';
+    return {
+      version,
+      buildTimestamp: ts,
+      displayVersion: ts ? `${version}.${ts}` : version,
+      electronVersion: process.versions.electron,
+      platform: process.platform
+    };
+  });
 }
 
 export { registerProjectsHandlers } from './projects-handlers';

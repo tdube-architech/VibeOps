@@ -17,9 +17,10 @@ export interface UpdateState {
   progressPercent: number | null;
 }
 
+const ts = typeof __BUILD_TIMESTAMP__ === 'string' ? __BUILD_TIMESTAMP__ : '';
 let state: UpdateState = {
   status: 'idle',
-  currentVersion: app.getVersion(),
+  currentVersion: ts ? `${app.getVersion()}.${ts}` : app.getVersion(),
   latestVersion: null,
   message: null,
   progressPercent: null

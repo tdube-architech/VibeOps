@@ -10,7 +10,7 @@ export function Topbar() {
   return (
     <header className="flex h-12 items-center justify-between border-b border-border bg-card/30 px-4">
       <div className="text-sm text-muted-foreground">
-        {info ? `v${info.version} · electron ${info.electronVersion}` : 'loading…'}
+        {info ? `v${info.displayVersion} · electron ${info.electronVersion}` : 'loading…'}
       </div>
     </header>
   );
