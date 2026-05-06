@@ -185,17 +185,83 @@ export async function updateFindingStatus(
   return rowToFinding(data as FindingRow);
 }
 
-/**
- * Push a freshly-completed local audit run + findings to Supabase so other
- * workspace members see it. Caller passes the AuditRun returned by main process.
- */
-export async function publishAuditRun(run: AuditRun, project: { id: string; workspaceId?: string }): Promise<void> {
-  if (!isCloud(project.id)) return;
-  const supabase = getSupabase();
-  const { data: u } = await supabase.auth.getUser();
-  if (!u.user) throw new Error('Not signed in');
+export class AuditInFlightError extends Error {
+  readonly code = 'AUDIT_IN_FLIGHT';
+  constructor(public readonly runBy: string | null, public readonly startedAt: string | null) {
+    super('Another audit is already running on this project');
+  }
+}
 
-  // Need workspace_id on the server side. Look it up if not provided.
+export interface InFlightAudit {
+  id: string;
+  runByUserId: string;
+  runByEmail: string | null;
+  runByDisplayName: string | null;
+  startedAt: string;
+}
+
+export async function fetchInFlightAudit(projectId: string): Promise<InFlightAudit | null> {
+  if (!isCloud(projectId)) return null;
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('audit_runs')
+    .select('id, run_by_user_id, started_at')
+    .eq('project_id', projectId)
+    .eq('status', 'running')
+    .gt('started_at', new Date(Date.now() - 10 * 60_000).toISOString())
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as { id: string; run_by_user_id: string; started_at: string };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, display_name')
+    .eq('user_id', row.run_by_user_id)
+    .maybeSingle();
+  const p = profile as { email: string; display_name: string | null } | null;
+
+  return {
+    id: row.id,
+    runByUserId: row.run_by_user_id,
+    runByEmail: p?.email ?? null,
+    runByDisplayName: p?.display_name ?? null,
+    startedAt: row.started_at
+  };
+}
+
+/**
+ * Acquire a server-side lock by inserting an audit_runs row with status='running'.
+ * Throws AuditInFlightError if another run is active.
+ */
+export async function claimAuditRun(
+  workspaceId: string, projectId: string, auditType: import('@shared/types').AuditType = 'full'
+): Promise<{ id: string }> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('claim_audit_run', {
+    ws_id: workspaceId,
+    proj_id: projectId,
+    audit_kind: auditType
+  });
+  if (error) {
+    if (/AUDIT_IN_FLIGHT|P0014/.test(error.message)) {
+      const existing = await fetchInFlightAudit(projectId);
+      throw new AuditInFlightError(existing?.runByEmail ?? null, existing?.startedAt ?? null);
+    }
+    throw new Error(error.message);
+  }
+  return { id: (data as RunRow).id };
+}
+
+/**
+ * Finalize a previously-claimed run with results + findings.
+ */
+export async function finalizeAuditRun(
+  runId: string, run: AuditRun, project: { id: string; workspaceId?: string }
+): Promise<void> {
+  const supabase = getSupabase();
   let workspaceId = project.workspaceId;
   if (!workspaceId) {
     const { data: p } = await supabase.from('projects').select('workspace_id').eq('id', project.id).maybeSingle();
@@ -203,34 +269,23 @@ export async function publishAuditRun(run: AuditRun, project: { id: string; work
     if (!workspaceId) throw new Error('Could not resolve workspace_id for project');
   }
 
-  // Insert run
-  const { data: insertedRun, error: runErr } = await supabase
-    .from('audit_runs')
-    .insert({
-      project_id: project.id,
-      workspace_id: workspaceId,
-      audit_type: run.auditType,
-      status: run.status,
-      score: run.score,
-      risk_level: run.riskLevel,
-      summary: run.summary,
-      recommended_next_action: run.recommendedNextAction,
-      provider: run.provider,
-      model: run.model,
-      run_by_user_id: u.user.id,
-      started_at: run.startedAt,
-      completed_at: run.completedAt,
-      error_message: run.errorMessage
-    })
-    .select('id')
-    .single();
-  if (runErr) throw new Error(runErr.message);
-  const newRunId = (insertedRun as { id: string }).id;
+  const { error: finalizeErr } = await supabase.rpc('finalize_audit_run', {
+    run_id: runId,
+    final_status: run.status,
+    final_score: run.score,
+    final_risk_level: run.riskLevel,
+    final_summary: run.summary,
+    final_recommended_next_action: run.recommendedNextAction,
+    final_provider: run.provider,
+    final_model: run.model,
+    final_error_message: run.errorMessage
+  });
+  if (finalizeErr) throw new Error(finalizeErr.message);
 
   if (run.findings.length === 0) return;
 
   const findingRows = run.findings.map((f) => ({
-    audit_run_id: newRunId,
+    audit_run_id: runId,
     project_id: project.id,
     workspace_id: workspaceId,
     severity: f.severity,
@@ -244,11 +299,30 @@ export async function publishAuditRun(run: AuditRun, project: { id: string; work
     suggested_prompt: f.suggestedPrompt,
     status: f.status
   }));
-
-  // Bulk insert in chunks of 100
   for (let i = 0; i < findingRows.length; i += 100) {
     const chunk = findingRows.slice(i, i + 100);
     const { error: fErr } = await supabase.from('audit_findings').insert(chunk);
     if (fErr) throw new Error(fErr.message);
   }
+}
+
+/**
+ * Backwards-compat wrapper: claim → run is already complete locally → finalize.
+ * Used by the existing useStartAudit flow that fires audit then publishes.
+ */
+export async function publishAuditRun(run: AuditRun, project: { id: string; workspaceId?: string }): Promise<void> {
+  if (!isCloud(project.id)) return;
+  const supabase = getSupabase();
+  const { data: u } = await supabase.auth.getUser();
+  if (!u.user) throw new Error('Not signed in');
+
+  let workspaceId = project.workspaceId;
+  if (!workspaceId) {
+    const { data: p } = await supabase.from('projects').select('workspace_id').eq('id', project.id).maybeSingle();
+    workspaceId = (p as { workspace_id: string } | null)?.workspace_id;
+    if (!workspaceId) throw new Error('Could not resolve workspace_id for project');
+  }
+
+  const { id: runId } = await claimAuditRun(workspaceId, project.id, run.auditType);
+  await finalizeAuditRun(runId, run, { id: project.id, workspaceId });
 }

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { pushAuditCompleted } from '@/lib/data/sync-progress';
 import {
-  FindingConflictError,
+  AuditInFlightError, fetchInFlightAudit, FindingConflictError,
   latestAudit, listAudits, listFindings, publishAuditRun, updateFindingStatus
 } from '@/lib/data/audits';
 import { toast } from '@/lib/toast';
@@ -12,6 +12,16 @@ const auditsKey = (projectId: string) => ['audits', projectId] as const;
 const latestKey = (projectId: string) => ['audits', projectId, 'latest'] as const;
 const findingsKey = (auditRunId: string) => ['audits', 'findings', auditRunId] as const;
 const promptsKey = (projectId: string) => ['prompts', projectId] as const;
+const inFlightKey = (projectId: string) => ['audits', projectId, 'in-flight'] as const;
+
+export function useInFlightAudit(projectId: string | undefined) {
+  return useQuery({
+    queryKey: projectId ? inFlightKey(projectId) : ['audits', '__none__', 'in-flight'],
+    queryFn: () => (projectId ? fetchInFlightAudit(projectId) : Promise.resolve(null)),
+    enabled: !!projectId,
+    refetchInterval: 30_000
+  });
+}
 
 export function useAuditList(projectId: string | undefined) {
   return useQuery({
@@ -59,7 +69,14 @@ export function useStartAudit() {
       qc.invalidateQueries({ queryKey: auditsKey(project.id) });
       qc.invalidateQueries({ queryKey: latestKey(project.id) });
       qc.invalidateQueries({ queryKey: promptsKey(project.id) });
+      qc.invalidateQueries({ queryKey: inFlightKey(project.id) });
       qc.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (e) => {
+      if (e instanceof AuditInFlightError) {
+        const who = e.runBy ? `by ${e.runBy}` : 'by another user';
+        toast.error('Audit already running', `Started ${who} — wait for it to complete.`);
+      }
     }
   });
 }

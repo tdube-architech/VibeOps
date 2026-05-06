@@ -1,20 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Play, Sparkles } from 'lucide-react';
+import { Lock, Play, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AuditScoreRing } from '@/features/projects/AuditScoreRing';
 import { FindingsTable } from '@/features/projects/FindingsTable';
 import { RecommendedPromptCard } from '@/features/projects/RecommendedPromptCard';
-import { useAuditList, useLatestAudit, useStartAudit, usePrompts } from '@/features/projects/useAudits';
+import { useAuditList, useLatestAudit, useStartAudit, usePrompts, useInFlightAudit } from '@/features/projects/useAudits';
 import type { Project, AuditRun, GeneratedPrompt } from '@shared/types';
+
+function relativeMins(iso: string): string {
+  const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
+  if (m === 0) return 'just now';
+  return `${m} min ago`;
+}
 
 export function ProjectAuditsTab({ project }: { project: Project }) {
   const start = useStartAudit();
   const { data: list = [] } = useAuditList(project.id);
   const { data: latest, refetch: refetchLatest } = useLatestAudit(project.id);
   const { data: prompts = [] } = usePrompts(project.id);
+  const { data: inFlight } = useInFlightAudit(project.id);
   const [error, setError] = useState<string | null>(null);
+  const locked = !!inFlight && !start.isPending;
 
   useEffect(() => { void refetchLatest(); }, [list.length, refetchLatest]);
 
@@ -37,11 +45,23 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
             <CardTitle>Audits</CardTitle>
             <CardDescription>Read-only audit. No code is modified. AI completeness checks run if a provider is active.</CardDescription>
           </div>
-          <Button onClick={run} disabled={start.isPending}>
-            <Play className="h-4 w-4" /> {start.isPending ? 'Running…' : 'Run Audit'}
+          <Button onClick={run} disabled={start.isPending || locked}>
+            {locked ? <Lock className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            {start.isPending ? 'Running…' : locked ? 'Locked' : 'Run Audit'}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          {locked && inFlight && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <div className="flex items-center gap-2 font-medium">
+                <Lock className="h-4 w-4" /> Audit in progress
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Started by {inFlight.runByDisplayName ?? inFlight.runByEmail ?? 'a teammate'} {relativeMins(inFlight.startedAt)}.
+                Wait for it to finish or it will time out after 10 minutes.
+              </div>
+            </div>
+          )}
           {error && <div className="text-sm text-destructive">{error}</div>}
           {!latest && !start.isPending && (
             <div className="rounded-md border border-dashed border-border p-6 text-sm text-muted-foreground">
