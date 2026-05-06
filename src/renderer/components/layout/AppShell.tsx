@@ -6,7 +6,8 @@ import { Topbar } from './Topbar';
 import { UpdatePrompt } from '@/features/update/UpdatePrompt';
 import { MigrationGate } from '@/features/migrate/MigrationGate';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
-import { useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
+import { useActiveWorkspaceId, useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
+import { useWorkspaceTasksRealtime } from '@/lib/data/realtime';
 import { pushAuditCompleted, pushScanCompleted } from '@/lib/data/sync-progress';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -26,6 +27,7 @@ const STAGE_LABEL: Record<PipelineStage, string> = {
 export function AppShell() {
   const qc = useQueryClient();
   useEnsureDefaultWorkspace();
+  useWorkspaceTasksRealtime(useActiveWorkspaceId());
 
   useEffect(() => {
     return api.pipeline.onProgress((evt: PipelineEvent) => {

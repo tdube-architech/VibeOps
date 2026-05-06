@@ -1,16 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { pushAuditCompleted } from '@/lib/data/sync-progress';
+import {
+  FindingConflictError,
+  latestAudit, listAudits, listFindings, publishAuditRun, updateFindingStatus
+} from '@/lib/data/audits';
+import { toast } from '@/lib/toast';
 import type { AuditRun, AuditFinding, GeneratedPrompt } from '@shared/types';
 
 const auditsKey = (projectId: string) => ['audits', projectId] as const;
 const latestKey = (projectId: string) => ['audits', projectId, 'latest'] as const;
+const findingsKey = (auditRunId: string) => ['audits', 'findings', auditRunId] as const;
 const promptsKey = (projectId: string) => ['prompts', projectId] as const;
 
 export function useAuditList(projectId: string | undefined) {
   return useQuery({
     queryKey: projectId ? auditsKey(projectId) : ['audits', '__none__'],
-    queryFn: () => (projectId ? api.audits.list(projectId) : Promise.resolve<AuditRun[]>([])),
+    queryFn: () => (projectId ? listAudits(projectId) : Promise.resolve<AuditRun[]>([])),
     enabled: !!projectId
   });
 }
@@ -18,17 +24,33 @@ export function useAuditList(projectId: string | undefined) {
 export function useLatestAudit(projectId: string | undefined) {
   return useQuery({
     queryKey: projectId ? latestKey(projectId) : ['audits', '__none__', 'latest'],
-    queryFn: () => (projectId ? api.audits.latest(projectId) : Promise.resolve<AuditRun | null>(null)),
+    queryFn: () => (projectId ? latestAudit(projectId) : Promise.resolve<AuditRun | null>(null)),
     enabled: !!projectId
+  });
+}
+
+export function useFindings(auditRunId: string | undefined) {
+  return useQuery({
+    queryKey: auditRunId ? findingsKey(auditRunId) : ['audits', 'findings', '__none__'],
+    queryFn: () => (auditRunId ? listFindings(auditRunId) : Promise.resolve<AuditFinding[]>([])),
+    enabled: !!auditRunId
   });
 }
 
 export function useStartAudit() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (project: { id: string; localPath: string; name: string }) =>
+    mutationFn: (project: { id: string; localPath: string; name: string; workspaceId?: string }) =>
       api.audits.start(project.id, undefined, { localPath: project.localPath, name: project.name }),
     onSuccess: async (run, project) => {
+      try {
+        const target = project.workspaceId
+          ? { id: project.id, workspaceId: project.workspaceId }
+          : { id: project.id };
+        await publishAuditRun(run, target);
+      } catch (e) {
+        console.warn('[audit] publish to server failed', e);
+      }
       try {
         await pushAuditCompleted(project.id, run.completedAt ?? new Date().toISOString());
       } catch {
@@ -43,9 +65,22 @@ export function useStartAudit() {
 }
 
 export function useUpdateFinding() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AuditFinding['status'] }) =>
-      api.audits.updateFinding(id, status)
+    mutationFn: ({ id, status, expectedVersion }: { id: string; status: AuditFinding['status']; expectedVersion?: number | undefined }) => {
+      const arg: { id: string; status: AuditFinding['status']; expectedVersion?: number } = { id, status };
+      if (expectedVersion !== undefined) arg.expectedVersion = expectedVersion;
+      return updateFindingStatus(arg);
+    },
+    onSuccess: (f) => {
+      if (f) qc.invalidateQueries({ queryKey: findingsKey(f.auditRunId) });
+    },
+    onError: (e) => {
+      if (e instanceof FindingConflictError) {
+        toast.error('Finding was just updated by another user', 'Refreshing latest…');
+        qc.invalidateQueries({ queryKey: ['audits'] });
+      }
+    }
   });
 }
 

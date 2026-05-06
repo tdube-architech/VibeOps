@@ -14,6 +14,7 @@ interface ProjectRow {
   primary_stack: string | null;
   status: ProjectStatus;
   visibility?: 'workspace' | 'private' | 'restricted';
+  version?: number;
   created_at: string;
   updated_at: string;
   last_audited_at: string | null;
@@ -26,7 +27,7 @@ interface UserStateRow {
 }
 
 function rowToProject(row: ProjectRow, userState?: UserStateRow): Project {
-  return {
+  const p: Project = {
     id: row.id,
     workspaceId: row.workspace_id,
     name: row.name,
@@ -44,6 +45,8 @@ function rowToProject(row: ProjectRow, userState?: UserStateRow): Project {
     lastScannedAt: userState?.last_scanned_at ?? null,
     lastAuditedAt: row.last_audited_at
   };
+  if (row.version !== undefined) p.version = row.version;
+  return p;
 }
 
 function slugify(name: string): string {
@@ -63,7 +66,7 @@ export async function listProjects(q: ProjectListQuery & { workspaceId?: string 
 
   let projectQuery = supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
     .order(q.sort === 'name' ? 'name' : 'updated_at', { ascending: q.sort === 'name' });
 
   if (wsId) projectQuery = projectQuery.eq('workspace_id', wsId);
@@ -133,7 +136,7 @@ export async function getProject(id: string): Promise<Project | null> {
   const userId = await getCurrentUserId();
   const { data: row, error } = await supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -159,7 +162,7 @@ export async function checkPathExists(localPath: string, workspaceId: string): P
   if (ids.length === 0) return null;
   const { data: rows } = await supabase
     .from('projects')
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
     .in('id', ids)
     .eq('workspace_id', workspaceId)
     .limit(1);
@@ -197,7 +200,7 @@ export async function addProject(
       tags: input.tags ?? [],
       repo_url: input.repoUrl?.trim() || null
     })
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
     .single();
   if (error) throw new Error(error.message);
 
@@ -227,7 +230,7 @@ export async function updateProject(patch: ProjectPatch): Promise<Project> {
     .from('projects')
     .update(update)
     .eq('id', patch.id)
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, created_at, updated_at, last_audited_at')
+    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
     .single();
   if (error) throw new Error(error.message);
   return rowToProject(data as ProjectRow);

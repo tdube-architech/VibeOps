@@ -63,7 +63,7 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
             </div>
             {projectName && <div className="text-xs text-muted-foreground mt-1">{projectName}</div>}
           </div>
-          <Select value={task.status} onValueChange={(v) => update.mutate({ id: task.id, status: v as TaskStatus })}>
+          <Select value={task.status} onValueChange={(v) => update.mutate({ id: task.id, status: v as TaskStatus, expectedVersion: task.version })}>
             <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
@@ -99,7 +99,7 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
             )}
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Priority</span>
-              <Select value={task.priority} onValueChange={(v) => update.mutate({ id: task.id, priority: v as TaskPriority })}>
+              <Select value={task.priority} onValueChange={(v) => update.mutate({ id: task.id, priority: v as TaskPriority, expectedVersion: task.version })}>
                 <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PRIORITY_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}

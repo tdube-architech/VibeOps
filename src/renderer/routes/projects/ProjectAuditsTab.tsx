@@ -20,7 +20,7 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
 
   async function run() {
     setError(null);
-    try { await start.mutateAsync({ id: project.id, localPath: project.localPath, name: project.name }); }
+    try { await start.mutateAsync({ id: project.id, localPath: project.localPath, name: project.name, workspaceId: project.workspaceId }); }
     catch (e) { setError((e as Error).message); }
   }
 

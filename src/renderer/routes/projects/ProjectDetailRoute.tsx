@@ -12,11 +12,13 @@ import { ProjectMemoryTab } from './ProjectMemoryTab';
 import { ProjectAuditsTab } from './ProjectAuditsTab';
 import { ProjectCodeMapTab } from './ProjectCodeMapTab';
 import { ProjectGitTab } from './ProjectGitTab';
+import { useProjectRealtime } from '@/lib/data/realtime';
 
 export function ProjectDetailRoute() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id);
+  useProjectRealtime(id);
   const archive = useArchiveProject();
   const unarchive = useUnarchiveProject();
   const remove = useRemoveProject();

@@ -25,6 +25,8 @@ export interface Project {
   source?: 'cloud' | 'local';
   /** Project ACL. Only meaningful for cloud projects. */
   visibility?: 'workspace' | 'private' | 'restricted';
+  /** Optimistic concurrency stamp on cloud projects. */
+  version?: number;
 }
 
 export interface Workspace {
@@ -56,6 +58,8 @@ export interface Task {
   suggestedPrompt: string | null;
   createdAt: string;
   completedAt: string | null;
+  /** Optimistic concurrency stamp. Server-side rows only. Local rows omit. */
+  version?: number;
 }
 
 export interface TaskInput {
@@ -332,6 +336,8 @@ export interface AuditFinding {
   suggestedPrompt: string | null;
   status: 'open' | 'wont-fix' | 'fixed' | 'ignored';
   createdAt: string;
+  /** Optimistic concurrency stamp. Server-side rows only. */
+  version?: number;
 }
 
 export interface AuditRun {

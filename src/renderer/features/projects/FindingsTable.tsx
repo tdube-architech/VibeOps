@@ -53,8 +53,8 @@ export function FindingsTable({ findings }: { findings: AuditFinding[] }) {
               >
                 <ListPlus className="h-4 w-4" /> Create task
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'fixed' })}>Mark fixed</Button>
-              <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'ignored' })}>Ignore</Button>
+              <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'fixed', expectedVersion: f.version })}>Mark fixed</Button>
+              <Button variant="ghost" size="sm" onClick={() => update.mutate({ id: f.id, status: 'ignored', expectedVersion: f.version })}>Ignore</Button>
             </div>
           </div>
         </div>
