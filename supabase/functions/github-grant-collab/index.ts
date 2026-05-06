@@ -168,6 +168,17 @@ Deno.serve(async (req) => {
     return json({ error: `cannot parse GitHub owner/repo from ${project.repo_url}` }, 400);
   }
 
+  if (parsed.owner.toLowerCase() === targetGithubUsername.toLowerCase()) {
+    await recordGrant(adminClient, {
+      projectId: project.id,
+      workspaceId: project.workspace_id,
+      memberUserId: targetUserId,
+      githubUsername: targetGithubUsername,
+      status: 'granted'
+    });
+    return json({ ok: true, status: 'already-collaborator' satisfies GrantResult['status'] }, 200);
+  }
+
   const ghRes = await fetch(
     `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/collaborators/${targetGithubUsername}`,
     {

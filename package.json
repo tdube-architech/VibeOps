@@ -1,6 +1,6 @@
 {
   "name": "vibeops",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "private": true,
   "description": "Local-first Windows project intelligence app for AI-built software",
   "main": "out/main/index.js",
