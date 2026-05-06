@@ -16,7 +16,7 @@
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/main/db/migrate.ts",
-    "postinstall": "electron-rebuild --only better-sqlite3"
+    "postinstall": "electron-rebuild -v 41.5.0 --only better-sqlite3 --force"
   },
   "engines": {
     "node": ">=20.18.0"

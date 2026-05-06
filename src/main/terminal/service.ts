@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { customAlphabet } from 'nanoid';
 import type { Logger } from 'pino';
 import type { BrowserWindow } from 'electron';
@@ -73,6 +75,26 @@ function defaultShell(): { command: string; args: string[]; label: string } {
   return { command: '/bin/bash', args: ['-l'], label: 'bash' };
 }
 
+/**
+ * Walk PATHEXT extensions across PATH dirs to locate a Windows binary by bare
+ * name. CreateProcess (used by node-pty's ConPTY backend) won't resolve
+ * .cmd / .ps1 shims like claude.cmd or npm.cmd unless given a full path.
+ */
+function resolveWindowsBinary(command: string, pathEnv: string, cwd: string): string | null {
+  if (existsSync(command)) return path.resolve(command);
+  const exts = (process.env.PATHEXT ?? '.EXE;.CMD;.BAT;.COM').split(';').map((e) => e.trim()).filter(Boolean);
+  const lowerHasExt = /\.[a-z0-9]+$/i.test(command);
+  const candidates = lowerHasExt ? [''] : exts;
+  const dirs = [cwd, ...pathEnv.split(';')].filter(Boolean);
+  for (const dir of dirs) {
+    for (const ext of candidates) {
+      const candidate = path.join(dir, command + ext);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
 let ptyModulePromise: Promise<PtyModule | null> | null = null;
 async function loadPty(logger: Logger): Promise<PtyModule | null> {
   if (!ptyModulePromise) {
@@ -116,9 +138,23 @@ export class TerminalService {
     }
     Object.assign(env, args.env ?? {}, { TERM: 'xterm-256color' });
 
+    let resolvedCommand = command;
+    let resolvedArgs = cmdArgs;
+    if (process.platform === 'win32' && !command.includes('\\') && !command.includes('/')) {
+      const fullPath = resolveWindowsBinary(command, env.PATH ?? env.Path ?? '', args.cwd);
+      if (fullPath) {
+        resolvedCommand = fullPath;
+      } else {
+        // Last resort: let cmd.exe resolve bare names (.cmd / .ps1 shims that
+        // CreateProcess won't run directly, e.g. claude.cmd, npm.cmd).
+        resolvedCommand = process.env.ComSpec ?? 'cmd.exe';
+        resolvedArgs = ['/d', '/s', '/c', command, ...cmdArgs];
+      }
+    }
+
     let proc: IPty;
     try {
-      proc = pty.spawn(command, cmdArgs, {
+      proc = pty.spawn(resolvedCommand, resolvedArgs, {
         name: 'xterm-256color',
         cols: args.cols ?? 80,
         rows: args.rows ?? 30,
