@@ -120,6 +120,18 @@ export async function updateMemberRole(workspaceId: string, userId: string, role
   if (error) throw new Error(error.message);
 }
 
+export async function acceptInvitationByToken(token: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('accept_invitation', { invite_token: token });
+  if (error) throw new Error(error.message);
+}
+
+export async function declineInvitationByToken(token: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('decline_invitation', { invite_token: token });
+  if (error) throw new Error(error.message);
+}
+
 export function buildAcceptInviteUrl(token: string): string {
   return `vibeops://accept-invite/${encodeURIComponent(token)}`;
 }

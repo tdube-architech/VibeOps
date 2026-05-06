@@ -20,6 +20,12 @@ async function acceptPendingInvite(token: string): Promise<{ ok: boolean; messag
   return { ok: true };
 }
 
+async function isSignedInNow(): Promise<boolean> {
+  const supabase = getSupabase();
+  const { data } = await supabase.auth.getSession();
+  return Boolean(data.session?.user);
+}
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { state, loading } = useAuth();
   const qc = useQueryClient();
@@ -80,9 +86,25 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
         if (u.host === 'accept-invite' && path) {
           const token = decodeURIComponent(path);
-          window.localStorage.setItem(PENDING_INVITE_KEY, token);
           console.info('[invite] captured token', token.slice(0, 8) + '…');
-          toast.info('Invitation captured', 'Sign in to accept.');
+          if (await isSignedInNow()) {
+            // Already signed in — redeem right away.
+            if (acceptedRef.current.has(token)) return;
+            acceptedRef.current.add(token);
+            toast.info('Accepting invitation…');
+            const result = await acceptPendingInvite(token);
+            if (result.ok) {
+              toast.success('Joined workspace', 'You now have access to shared projects.');
+              qc.invalidateQueries({ queryKey: ['workspaces'] });
+              qc.invalidateQueries({ queryKey: ['projects'] });
+              qc.invalidateQueries({ queryKey: ['notifications'] });
+            } else {
+              toast.error('Could not accept invitation', result.message ?? 'unknown error');
+            }
+          } else {
+            window.localStorage.setItem(PENDING_INVITE_KEY, token);
+            toast.info('Invitation captured', 'Sign in to accept.');
+          }
         }
       } catch (e) {
         console.error('[auth] deep link handler threw', e);

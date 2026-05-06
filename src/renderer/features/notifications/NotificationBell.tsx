@@ -9,6 +9,7 @@ import {
   deleteNotification, listNotifications, markAllRead, markNotificationRead,
   type Notification
 } from '@/lib/data/notifications';
+import { acceptInvitationByToken, declineInvitationByToken } from '@/lib/data/members';
 
 const KEY = ['notifications'] as const;
 
@@ -103,6 +104,34 @@ export function NotificationBell() {
     qc.invalidateQueries({ queryKey: KEY });
   }
 
+  async function onAcceptInvite(e: React.MouseEvent, n: Notification) {
+    e.stopPropagation();
+    const token = (n.payload?.['token'] as string | undefined) ?? null;
+    if (!token) { toast.error('Invite missing token'); return; }
+    try {
+      await acceptInvitationByToken(token);
+      toast.success('Joined workspace');
+      qc.invalidateQueries({ queryKey: KEY });
+      qc.invalidateQueries({ queryKey: ['workspaces'] });
+      qc.invalidateQueries({ queryKey: ['projects'] });
+    } catch (err) {
+      toast.error('Could not accept invite', (err as Error).message);
+    }
+  }
+
+  async function onDeclineInvite(e: React.MouseEvent, n: Notification) {
+    e.stopPropagation();
+    const token = (n.payload?.['token'] as string | undefined) ?? null;
+    if (!token) { toast.error('Invite missing token'); return; }
+    try {
+      await declineInvitationByToken(token);
+      toast.info('Invite declined');
+      qc.invalidateQueries({ queryKey: KEY });
+    } catch (err) {
+      toast.error('Could not decline invite', (err as Error).message);
+    }
+  }
+
   return (
     <div className="relative" ref={dropdownRef} style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
       <button
@@ -151,6 +180,22 @@ export function NotificationBell() {
                         <div className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{n.body}</div>
                       )}
                       <div className="mt-1 text-[10px] text-muted-foreground">{formatRelative(n.createdAt)}</div>
+                      {n.type === 'workspace.invitation_pending' && !n.readAt && (
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            onClick={(e) => void onAcceptInvite(e, n)}
+                            className="rounded bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={(e) => void onDeclineInvite(e, n)}
+                            className="rounded border border-border px-2 py-1 text-xs hover:bg-secondary/40"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={(e) => void onDismiss(e, n.id)}

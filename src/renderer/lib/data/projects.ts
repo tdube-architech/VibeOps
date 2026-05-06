@@ -188,20 +188,19 @@ export async function addProject(
     }
   }
 
-  const { data: insertedRow, error } = await supabase
-    .from('projects')
-    .insert({
-      workspace_id: workspaceId,
-      name: input.name.trim(),
-      slug: slugify(input.name),
-      description: input.description?.trim() || null,
-      category: input.category?.trim() || null,
-      status: input.status ?? 'active',
-      tags: input.tags ?? [],
-      repo_url: input.repoUrl?.trim() || null
-    })
-    .select('id, workspace_id, name, slug, description, repo_url, category, tags, primary_stack, status, visibility, version, created_at, updated_at, last_audited_at')
-    .single();
+  // Server-side RPC validates membership/role with auth.uid() at insert
+  // time — bypasses the RLS timing race that hits the renderer when the
+  // session is mid-refresh.
+  const { data: insertedRow, error } = await supabase.rpc('create_project_for_wizard', {
+    ws_id: workspaceId,
+    proj_name: input.name.trim(),
+    proj_slug: slugify(input.name),
+    proj_desc: input.description?.trim() || null,
+    proj_repo: input.repoUrl?.trim() || null,
+    proj_cat: input.category?.trim() || null,
+    proj_tags: input.tags ?? [],
+    proj_vis: 'workspace'
+  });
   if (error) throw new Error(error.message);
 
   await supabase
