@@ -178,6 +178,9 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
   useEffect(() => {
     const term = termRef.current;
     if (!term || !iAmController) return;
+    // xterm must be focused for keys to fire onData. After Take Control,
+    // shift focus to the embedded terminal so the user can just start typing.
+    term.focus();
     const sub = term.onData((data) => sendKey(data));
     return () => sub.dispose();
   }, [iAmController, sendKey]);

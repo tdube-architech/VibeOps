@@ -436,8 +436,9 @@ export interface ControlKeystroke {
 
 /**
  * Spectator-side: persistent keystroke sender. Returns a `send(data)`
- * function that broadcasts to the owner's listener. Channel is kept open
- * for the hook's lifetime so we don't subscribe per keystroke.
+ * function that broadcasts to the owner's listener. Buffers keystrokes
+ * while the channel is still subscribing so the first characters after
+ * claiming control don't get dropped.
  */
 export function useControlKeystrokeSender(
   sessionId: string | null | undefined,
@@ -446,6 +447,7 @@ export function useControlKeystrokeSender(
   const consumerId = useId();
   const channelRef = useRef<ReturnType<ReturnType<typeof getSupabase>['channel']> | null>(null);
   const readyRef = useRef(false);
+  const queueRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!sessionId || !fromUserId) return;
@@ -453,10 +455,23 @@ export function useControlKeystrokeSender(
     const ch = supabase.channel(`ai-control-${sessionId}-s-${consumerId}`, {
       config: { broadcast: { self: false, ack: false } }
     });
-    ch.subscribe((status) => { readyRef.current = status === 'SUBSCRIBED'; });
+    ch.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        readyRef.current = true;
+        // Drain any keystrokes queued during the subscribe window.
+        for (const data of queueRef.current.splice(0)) {
+          void ch.send({
+            type: 'broadcast',
+            event: 'key',
+            payload: { data, fromUserId } as ControlKeystroke
+          });
+        }
+      }
+    });
     channelRef.current = ch;
     return () => {
       readyRef.current = false;
+      queueRef.current = [];
       const c = channelRef.current;
       channelRef.current = null;
       if (c) void getSupabase().removeChannel(c);
@@ -464,7 +479,11 @@ export function useControlKeystrokeSender(
   }, [sessionId, fromUserId, consumerId]);
 
   return useCallback((data: string) => {
-    if (!sessionId || !fromUserId || !readyRef.current) return;
+    if (!sessionId || !fromUserId) return;
+    if (!readyRef.current) {
+      queueRef.current.push(data);
+      return;
+    }
     const ch = channelRef.current;
     if (!ch) return;
     void ch.send({

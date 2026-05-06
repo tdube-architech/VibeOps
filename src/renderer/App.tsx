@@ -9,8 +9,12 @@ import { AuditsRoute } from '@/routes/AuditsRoute';
 import { TasksRoute } from '@/routes/TasksRoute';
 import { ChatRoute } from '@/routes/ChatRoute';
 import { SettingsRoute } from '@/routes/SettingsRoute';
+import { PopoutTerminalRoute } from '@/routes/PopoutTerminalRoute';
 
 const router = createHashRouter([
+  // Pop-out windows render a chrome-less route — no AppShell, no AuthGate
+  // gate (the parent main process already vouched for the user).
+  { path: 'popout/terminal/:projectId', element: <PopoutTerminalRoute /> },
   {
     path: '/',
     element: <AppShell />,

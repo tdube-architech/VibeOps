@@ -229,6 +229,8 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.terminalKill, sessionId)),
     list: (): Promise<import('@shared/types').TerminalSession[]> =>
       unwrap(ipcRenderer.invoke(IpcChannels.terminalList)),
+    popout: (projectId: string, cwd: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalPopout, { projectId, cwd })),
     onData: (cb: (e: { sessionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void): (() => void) => {
       const handler = (_e: unknown, evt: { sessionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => cb(evt);
       ipcRenderer.on(IpcChannels.terminalData, handler);

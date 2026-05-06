@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
-import { Play, Square, RotateCcw } from 'lucide-react';
+import { Play, Square, RotateCcw, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -26,6 +26,8 @@ interface Props {
   label?: string;
   cloud?: { projectId: string; workspaceId: string };
   onAiSessionChange?: (info: { aiSessionId: string; cwd: string; sessionStartSha: string | null } | null) => void;
+  /** When true, no pop-out button (used by the popout window itself). */
+  hidePopout?: boolean;
 }
 
 interface Preset { label: string; command: string; args: string[]; provider: string }
@@ -40,7 +42,7 @@ const COMMAND_PRESETS: Preset[] = [
   { label: 'bash', command: 'bash', args: ['-l'], provider: 'shell' }
 ];
 
-export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChange }: Props) {
+export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChange, hidePopout }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -295,6 +297,16 @@ export function TerminalView({ cwd, command, args, label, cloud, onAiSessionChan
         ) : (
           <Button variant="destructive" onClick={stop}>
             <Square className="h-4 w-4" /> Stop
+          </Button>
+        )}
+        {!hidePopout && cloud && (
+          <Button
+            variant="outline"
+            size="sm"
+            title="Open this terminal in a separate window"
+            onClick={() => void api.terminal.popout(cloud.projectId, cwd).catch(() => {})}
+          >
+            <ExternalLink className="h-3.5 w-3.5" /> Pop out
           </Button>
         )}
         {session && (
