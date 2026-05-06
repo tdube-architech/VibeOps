@@ -116,21 +116,51 @@ Deno.serve(async (req) => {
     return json({ error: 'workspace owner has not connected GitHub' }, 400);
   }
 
+  // Resolve the target's GitHub username. Order:
+  //   1. user_github_credentials.github_username (set when the invitee
+  //      signed into VibeOps via GitHub OAuth).
+  //   2. profiles fallback (in case credentials row hasn't synced yet).
+  //   3. invitations.invitee_github_username — if the inviter targeted
+  //      this workspace member by GitHub handle, we already know it
+  //      regardless of whether the invitee has linked GitHub themselves.
+  let targetGithubUsername: string | null = null;
   const { data: targetCreds } = await adminClient
     .from('user_github_credentials')
     .select('github_username')
     .eq('user_id', targetUserId)
     .maybeSingle();
-  if (!targetCreds?.github_username) {
+  if (targetCreds?.github_username) {
+    targetGithubUsername = targetCreds.github_username;
+  } else {
+    const { data: invRow } = await adminClient
+      .from('invitations')
+      .select('invitee_github_username')
+      .eq('workspace_id', project.workspace_id)
+      .eq('accepted_by', targetUserId)
+      .not('invitee_github_username', 'is', null)
+      .order('accepted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (invRow?.invitee_github_username) {
+      targetGithubUsername = invRow.invitee_github_username;
+      // Backfill user_github_credentials so future grants don't need this fallback.
+      await adminClient.from('user_github_credentials').upsert({
+        user_id: targetUserId,
+        github_username: targetGithubUsername,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' });
+    }
+  }
+  if (!targetGithubUsername) {
     await recordGrant(adminClient, {
       projectId: project.id,
       workspaceId: project.workspace_id,
       memberUserId: targetUserId,
       githubUsername: '',
       status: 'failed',
-      errorMessage: 'target member has not set their GitHub username'
+      errorMessage: 'target member has no linked GitHub username'
     });
-    return json({ error: 'target member has not set their GitHub username' }, 400);
+    return json({ error: 'target member has no linked GitHub username — they need to sign in to VibeOps via GitHub once' }, 400);
   }
 
   const parsed = parseGitHubRepo(project.repo_url);
@@ -139,7 +169,7 @@ Deno.serve(async (req) => {
   }
 
   const ghRes = await fetch(
-    `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/collaborators/${targetCreds.github_username}`,
+    `https://api.github.com/repos/${parsed.owner}/${parsed.repo}/collaborators/${targetGithubUsername}`,
     {
       method: 'PUT',
       headers: {
@@ -161,7 +191,7 @@ Deno.serve(async (req) => {
       projectId: project.id,
       workspaceId: project.workspace_id,
       memberUserId: targetUserId,
-      githubUsername: targetCreds.github_username,
+      githubUsername: targetGithubUsername,
       status: 'failed',
       errorMessage: `github ${ghRes.status}: ${errBody.slice(0, 500)}`
     });
@@ -172,7 +202,7 @@ Deno.serve(async (req) => {
     projectId: project.id,
     workspaceId: project.workspace_id,
     memberUserId: targetUserId,
-    githubUsername: targetCreds.github_username,
+    githubUsername: targetGithubUsername,
     status: 'granted'
   });
 

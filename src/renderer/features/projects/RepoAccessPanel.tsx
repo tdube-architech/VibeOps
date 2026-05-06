@@ -30,15 +30,23 @@ export function RepoAccessPanel({ project }: Props) {
       }
       return { granted, skipped, total: ms.length, results };
     },
-    onSuccess: ({ granted, skipped, total }) => {
+    onSuccess: ({ granted, skipped, total, results }) => {
+      const failures = results.filter((r) => !r.ok);
+      const firstErr = failures[0]?.error ?? null;
       if (granted === 0 && total > 0) {
-        toast.error('No grants succeeded',
-          'All members may be missing a GitHub username. Ask them to Reconnect GitHub.');
+        toast.error(
+          'No grants succeeded',
+          firstErr ?? 'Edge function may not be deployed, or owner lacks GitHub PAT scopes.'
+        );
+        console.warn('[grant] all failed:', failures);
       } else if (skipped > 0) {
-        toast.info(`Granted ${granted}/${total}`,
-          `${skipped} member(s) skipped — they need to link their GitHub username first.`);
+        toast.info(
+          `Granted ${granted}/${total}`,
+          `${skipped} member(s) skipped${firstErr ? `: ${firstErr}` : ''}`
+        );
+        console.warn('[grant] partial failures:', failures);
       } else {
-        toast.success(`Repo access synced`, `${granted} member(s) added as collaborators.`);
+        toast.success('Repo access synced', `${granted} member(s) added as collaborators.`);
       }
       qc.invalidateQueries({ queryKey: ['project-grants', project.id] });
     },
