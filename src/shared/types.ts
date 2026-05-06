@@ -428,6 +428,7 @@ export interface UpdateState {
   latestVersion: string | null;
   message: string | null;
   progressPercent: number | null;
+  installerPath: string | null;
 }
 
 export interface BackupExportResult {

@@ -18,3 +18,6 @@ export function useDownloadUpdate() {
 export function useInstallUpdate() {
   return useMutation({ mutationFn: () => api.update.install() });
 }
+export function useOpenInstallerManually() {
+  return useMutation({ mutationFn: () => api.update.openInstaller() });
+}

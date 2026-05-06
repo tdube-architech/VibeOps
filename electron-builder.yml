@@ -39,6 +39,10 @@ nsis:
   allowElevation: true
   shortcutName: VibeOps
   deleteAppDataOnUninstall: false
+  # Always serve the full installer — differential updates are less reliable
+  # across NSIS mode transitions and we'd rather a 100MB download than a
+  # half-applied update.
+  differentialPackage: false
 publish:
   provider: github
   owner: tdube-architech

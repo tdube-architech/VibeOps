@@ -1,7 +1,7 @@
 import electronUpdater from 'electron-updater';
 const { autoUpdater } = electronUpdater;
 import type { Logger } from 'pino';
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, app, shell } from 'electron';
 import { IpcChannels } from '@shared/ipc-channels';
 
 export interface UpdaterDeps {
@@ -15,6 +15,8 @@ export interface UpdateState {
   latestVersion: string | null;
   message: string | null;
   progressPercent: number | null;
+  /** Absolute path to the downloaded installer, surfaced for fallback. */
+  installerPath: string | null;
 }
 
 const ts = typeof __BUILD_TIMESTAMP__ === 'string' ? __BUILD_TIMESTAMP__ : '';
@@ -23,7 +25,8 @@ let state: UpdateState = {
   currentVersion: ts ? `${app.getVersion()}.${ts}` : app.getVersion(),
   latestVersion: null,
   message: null,
-  progressPercent: null
+  progressPercent: null,
+  installerPath: null
 };
 
 function emit(deps: UpdaterDeps): void {
@@ -68,7 +71,15 @@ export function setupUpdater(deps: UpdaterDeps): void {
     emit(deps);
   });
   autoUpdater.on('update-downloaded', (info) => {
-    state = { ...state, status: 'downloaded', latestVersion: info.version, message: 'Update downloaded. Restart to install.' };
+    const path = (info as unknown as { downloadedFile?: string }).downloadedFile ?? null;
+    state = {
+      ...state,
+      status: 'downloaded',
+      latestVersion: info.version,
+      installerPath: path,
+      message: 'Update downloaded. Click Install & Restart, or open the installer manually if needed.'
+    };
+    deps.logger.info({ updater: true, version: info.version, installerPath: path }, 'update downloaded');
     emit(deps);
   });
 
@@ -106,5 +117,16 @@ export const updaterApi = {
     // with /S and relaunch the app once it's done — no wizard, no "do
     // you want to install" prompt, no manual reopen.
     autoUpdater.quitAndInstall(true, true);
+  },
+  /**
+   * Fallback for cases where silent install doesn't relaunch (most often
+   * the first transition between NSIS oneClick modes). Opens the cached
+   * installer in a normal window so the user can re-run it manually.
+   */
+  async openInstallerManually(): Promise<{ ok: boolean; path: string | null }> {
+    const path = state.installerPath;
+    if (!path) return { ok: false, path: null };
+    const err = await shell.openPath(path);
+    return { ok: err === '', path };
   }
 };

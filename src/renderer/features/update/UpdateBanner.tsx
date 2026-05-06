@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Power, X, Download } from 'lucide-react';
+import { Power, X, Download, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUpdateState, useInstallUpdate } from './useUpdate';
+import { useUpdateState, useInstallUpdate, useOpenInstallerManually } from './useUpdate';
+import { toast } from '@/lib/toast';
 
 const DISMISS_KEY = 'vibeops:update-banner-dismissed';
 
@@ -12,6 +13,7 @@ const DISMISS_KEY = 'vibeops:update-banner-dismissed';
 export function UpdateBanner() {
   const state = useUpdateState();
   const install = useInstallUpdate();
+  const openInstaller = useOpenInstallerManually();
   const [dismissedFor, setDismissedFor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,6 +60,19 @@ export function UpdateBanner() {
       <Button size="sm" onClick={() => install.mutate()} disabled={install.isPending}>
         Install &amp; Restart
       </Button>
+      {state?.installerPath && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            const r = await openInstaller.mutateAsync();
+            if (!r.ok) toast.error('Could not open installer', r.path ?? 'no path');
+          }}
+          title="If silent install doesn't relaunch, open the installer here."
+        >
+          <FolderOpen className="h-3.5 w-3.5" /> Open installer
+        </Button>
+      )}
       <button onClick={dismiss} className="text-xs text-muted-foreground hover:text-foreground" title="Hide until next launch">
         <X className="h-4 w-4" />
       </button>

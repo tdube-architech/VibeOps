@@ -59,6 +59,7 @@ export const IpcChannels = {
   updateCheck: 'update:check',
   updateDownload: 'update:download',
   updateInstall: 'update:install',
+  updateOpenInstaller: 'update:openInstaller',
   updateState: 'update:state',
 
   workspaceList: 'workspace:list',

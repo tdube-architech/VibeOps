@@ -143,6 +143,8 @@ export const api = {
     check: (): Promise<UpdateState> => unwrap(ipcRenderer.invoke(IpcChannels.updateCheck)),
     download: (): Promise<UpdateState> => unwrap(ipcRenderer.invoke(IpcChannels.updateDownload)),
     install: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.updateInstall)),
+    openInstaller: (): Promise<{ ok: boolean; path: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.updateOpenInstaller)),
     onState: (cb: (s: UpdateState) => void): (() => void) => {
       const handler = (_e: unknown, s: UpdateState) => cb(s);
       ipcRenderer.on(IpcChannels.updateState, handler);

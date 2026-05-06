@@ -154,6 +154,7 @@ export function registerUpdateHandlers(updaterApi: {
   check: () => Promise<unknown>;
   download: () => Promise<unknown>;
   installAndRestart: () => void;
+  openInstallerManually: () => Promise<{ ok: boolean; path: string | null }>;
 }): void {
   ipcMain.handle(IpcChannels.updateCheck, async () => {
     try { return ok(await updaterApi.check()); } catch (e) { return fail(e); }
@@ -163,5 +164,8 @@ export function registerUpdateHandlers(updaterApi: {
   });
   ipcMain.handle(IpcChannels.updateInstall, () => {
     try { updaterApi.installAndRestart(); return ok(true); } catch (e) { return fail(e); }
+  });
+  ipcMain.handle(IpcChannels.updateOpenInstaller, async () => {
+    try { return ok(await updaterApi.openInstallerManually()); } catch (e) { return fail(e); }
   });
 }
