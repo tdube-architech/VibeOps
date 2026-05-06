@@ -31,3 +31,5 @@ export { registerPipelineHandlers } from './pipeline-handlers';
 export { registerRulePackHandlers } from './rule-pack-handlers';
 export { registerAuthHandlers } from './auth-handlers';
 export { registerMigrateHandlers } from './migrate-handlers';
+export { registerTerminalHandlers } from './terminal-handlers';
+export { registerAiSessionHandlers } from './ai-session-handlers';

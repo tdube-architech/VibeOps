@@ -200,6 +200,49 @@ export const api = {
       unwrap(ipcRenderer.invoke(IpcChannels.migrateMark, { localId, serverId })),
     skip: (): Promise<true> => unwrap(ipcRenderer.invoke(IpcChannels.migrateSkip))
   },
+  terminal: {
+    start: (args: { cwd: string; command?: string; args?: string[]; label?: string; cols?: number; rows?: number }):
+      Promise<import('@shared/types').TerminalSession> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalStart, args)),
+    write: (sessionId: string, data: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalWrite, { sessionId, data })),
+    resize: (sessionId: string, cols: number, rows: number): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalResize, { sessionId, cols, rows })),
+    kill: (sessionId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalKill, sessionId)),
+    list: (): Promise<import('@shared/types').TerminalSession[]> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.terminalList)),
+    onData: (cb: (e: { sessionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => void): (() => void) => {
+      const handler = (_e: unknown, evt: { sessionId: string; chunk: string; stream: 'stdout' | 'stderr' }) => cb(evt);
+      ipcRenderer.on(IpcChannels.terminalData, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.terminalData, handler);
+    },
+    onExit: (cb: (e: { sessionId: string; exitCode: number | null; endedAt: string }) => void): (() => void) => {
+      const handler = (_e: unknown, evt: { sessionId: string; exitCode: number | null; endedAt: string }) => cb(evt);
+      ipcRenderer.on(IpcChannels.terminalExit, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.terminalExit, handler);
+    }
+  },
+  aiSession: {
+    startWatch: (clientLocalId: string, cwd: string): Promise<{ sha: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiSessionStartWatch, { clientLocalId, cwd })),
+    stopWatch: (clientLocalId: string): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiSessionStopWatch, clientLocalId)),
+    gitHead: (cwd: string): Promise<{ sha: string | null }> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiSessionGitHead, cwd)),
+    revertFile: (payload: {
+      cwd: string;
+      filePath: string;
+      diffKind: 'create' | 'modify' | 'delete';
+      sha: string | null;
+    }): Promise<true> =>
+      unwrap(ipcRenderer.invoke(IpcChannels.aiSessionRevertFile, payload)),
+    onDiff: (cb: (e: import('@shared/types').AiSessionDiffEvent) => void): (() => void) => {
+      const handler = (_e: unknown, evt: import('@shared/types').AiSessionDiffEvent) => cb(evt);
+      ipcRenderer.on(IpcChannels.aiSessionDiff, handler);
+      return () => ipcRenderer.removeListener(IpcChannels.aiSessionDiff, handler);
+    }
+  },
   rulePack: {
     info: (): Promise<RulePackManifest | null> =>
       unwrap(ipcRenderer.invoke(IpcChannels.rulePackInfo)),

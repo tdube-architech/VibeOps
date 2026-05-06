@@ -111,6 +111,28 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+export interface TerminalSession {
+  id: string;
+  command: string;
+  args: string[];
+  cwd: string;
+  label: string;
+  lineMode: boolean;
+  startedAt: string;
+  endedAt: string | null;
+  exitCode: number | null;
+}
+
+export interface AiSessionDiffEvent {
+  clientLocalId: string;
+  filePath: string;
+  diffKind: 'create' | 'modify' | 'delete';
+  beforeHash: string | null;
+  afterHash: string | null;
+  sizeBytes: number | null;
+  ts: string;
+}
+
 export interface AppInfo {
   /** Semver core version, e.g. "0.0.4". */
   version: string;

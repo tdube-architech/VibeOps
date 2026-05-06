@@ -12,6 +12,7 @@ import { ProjectMemoryTab } from './ProjectMemoryTab';
 import { ProjectAuditsTab } from './ProjectAuditsTab';
 import { ProjectCodeMapTab } from './ProjectCodeMapTab';
 import { ProjectGitTab } from './ProjectGitTab';
+import { ProjectTerminalTab } from './ProjectTerminalTab';
 import { useProjectRealtime } from '@/lib/data/realtime';
 import { PresenceStack } from '@/features/presence/PresenceStack';
 
@@ -80,6 +81,7 @@ export function ProjectDetailRoute() {
           <TabsTrigger value="audits">Audits</TabsTrigger>
           <TabsTrigger value="code">Code Map</TabsTrigger>
           <TabsTrigger value="git">Git</TabsTrigger>
+          <TabsTrigger value="terminal">Terminal</TabsTrigger>
         </TabsList>
         <TabsContent value="overview"><ProjectOverviewTab project={project} /></TabsContent>
         <TabsContent value="scan"><ProjectScanTab project={project} /></TabsContent>
@@ -87,6 +89,7 @@ export function ProjectDetailRoute() {
         <TabsContent value="audits"><ProjectAuditsTab project={project} /></TabsContent>
         <TabsContent value="code"><ProjectCodeMapTab project={project} /></TabsContent>
         <TabsContent value="git"><ProjectGitTab project={project} /></TabsContent>
+        <TabsContent value="terminal"><ProjectTerminalTab project={project} /></TabsContent>
       </Tabs>
 
       <EditProjectDialog project={project} open={editOpen} onOpenChange={setEditOpen} />

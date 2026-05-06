@@ -12,6 +12,7 @@ import {
   fetchBilling, isBillingBypassEnabled, openBillingPortal, startCheckout, startTrial,
   type WorkspaceBilling
 } from '@/lib/data/billing';
+import { listMyConcurrentActiveCount } from '@/lib/data/aiSessions';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -46,6 +47,13 @@ export function BillingCard() {
     queryKey: ['billing', wsId],
     queryFn: () => fetchBilling(wsId!),
     enabled: valid
+  });
+
+  const { data: aiActiveCount } = useQuery({
+    queryKey: ['ai-sessions', 'my-active-count'],
+    queryFn: listMyConcurrentActiveCount,
+    enabled: valid,
+    refetchInterval: 30_000
   });
 
   const trial = useMutation({
@@ -113,6 +121,9 @@ export function BillingCard() {
               {statusBadge(billing)}
               <span className="text-xs text-muted-foreground">
                 {billing.memberCount} of {billing.plan === 'pro' && billing.memberSeats > 5 ? billing.memberSeats : 5} seats used
+              </span>
+              <span className="text-xs text-muted-foreground">
+                · {aiActiveCount ?? 0} of {billing.plan === 'pro' ? 5 : 1} AI session{billing.plan === 'pro' ? 's' : ''} active
               </span>
             </div>
 

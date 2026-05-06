@@ -87,6 +87,20 @@ export const IpcChannels = {
   rulePackCheckUpdate: 'rulePack:checkUpdate',
   rulePackState: 'rulePack:state',
 
+  terminalStart: 'terminal:start',
+  terminalWrite: 'terminal:write',
+  terminalResize: 'terminal:resize',
+  terminalKill: 'terminal:kill',
+  terminalList: 'terminal:list',
+  terminalData: 'terminal:data',
+  terminalExit: 'terminal:exit',
+
+  aiSessionStartWatch: 'aiSession:startWatch',
+  aiSessionStopWatch: 'aiSession:stopWatch',
+  aiSessionDiff: 'aiSession:diff',
+  aiSessionGitHead: 'aiSession:gitHead',
+  aiSessionRevertFile: 'aiSession:revertFile',
+
   authState: 'auth:state',
   authGetState: 'auth:getState',
   authGetSession: 'auth:getSession',

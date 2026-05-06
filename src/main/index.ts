@@ -18,10 +18,14 @@ import {
   registerPipelineHandlers,
   registerRulePackHandlers,
   registerAuthHandlers,
-  registerMigrateHandlers
+  registerMigrateHandlers,
+  registerTerminalHandlers,
+  registerAiSessionHandlers
 } from './ipc/handlers';
 import { AuthService } from './auth/service';
 import { setupProtocolHandler } from './auth/protocol';
+import { TerminalService } from './terminal/service';
+import { DiffWatcherService } from './ai-session/diff-watcher';
 import { resolveAppPaths } from './db/paths';
 import { openDb } from './db/client';
 import { runMigrations } from './db/migrate';
@@ -170,6 +174,15 @@ async function bootstrap(): Promise<void> {
   registerRulePackHandlers({ appDataRoot: paths.root, logger: log });
   registerAuthHandlers(auth);
   registerMigrateHandlers({ appDataRoot: paths.root, projectsService });
+
+  const terminalService = new TerminalService({ logger: log, getMainWindow: () => mainWindow });
+  registerTerminalHandlers(terminalService);
+  const diffWatcher = new DiffWatcherService({ logger: log, getMainWindow: () => mainWindow });
+  registerAiSessionHandlers(diffWatcher);
+  app.on('before-quit', () => {
+    terminalService.killAll();
+    diffWatcher.stopAll();
+  });
 
   mainWindow = createMainWindow();
   setupUpdater({ logger: log, getMainWindow: () => mainWindow });
