@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useUpdateTask, useRemoveTask } from './useTasks';
 import { CommentThread } from '@/features/comments/CommentThread';
+import { TaskPopout } from './TaskPopout';
 import { toast } from '@/lib/toast';
 import type { Task, TaskPriority, TaskStatus } from '@shared/types';
 
@@ -37,6 +38,7 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
   const remove = useRemoveTask();
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [popOpen, setPopOpen] = useState(false);
 
   async function copyPrompt() {
     if (!task.suggestedPrompt) return;
@@ -46,13 +48,14 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
   }
 
   return (
-    <Card>
+    <>
+    <Card onDoubleClick={() => setPopOpen(true)}>
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start gap-2">
           <button
             type="button"
             className="mt-0.5 text-muted-foreground hover:text-foreground"
-            onClick={() => setExpanded((v) => !v)}
+            onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
           >
             <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
           </button>
@@ -64,29 +67,33 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
             </div>
             {projectName && <div className="text-xs text-muted-foreground mt-1">{projectName}</div>}
           </div>
-          <Select value={task.status} onValueChange={(v) => update.mutate({ id: task.id, status: v as TaskStatus, expectedVersion: task.version })}>
-            <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
+            <Select value={task.status} onValueChange={(v) => update.mutate({ id: task.id, status: v as TaskStatus, expectedVersion: task.version })}>
+              <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (window.confirm(`Delete task "${task.title}"?`)) {
                 remove.mutate(task.id, {
                   onSuccess: () => toast.success('Task deleted')
                 });
               }
             }}
+            onDoubleClick={(e) => e.stopPropagation()}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
 
         {expanded && (
-          <div className="ml-6 space-y-2 pt-1">
+          <div className="ml-6 space-y-2 pt-1" onDoubleClick={(e) => e.stopPropagation()}>
             {task.description && (
               <p className="text-sm whitespace-pre-wrap text-muted-foreground">{task.description}</p>
             )}
@@ -132,5 +139,7 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
         )}
       </CardContent>
     </Card>
+    <TaskPopout task={task} open={popOpen} onOpenChange={setPopOpen} />
+    </>
   );
 }
