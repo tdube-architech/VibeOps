@@ -1,10 +1,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ListChecks } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { EmptyState } from '@/components/EmptyState';
 import { AddTaskDialog } from '@/features/tasks/AddTaskDialog';
 import { TaskBoard } from '@/features/tasks/TaskBoard';
 import { TaskFilterBar } from '@/features/tasks/TaskFilterBar';
@@ -85,16 +83,6 @@ export function TasksRoute() {
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading…</div>
-      ) : tasks.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <EmptyState
-              icon={<ListChecks className="h-6 w-6" />}
-              title="No tasks"
-              description="Click Add Task above, or open a project's Audits tab and convert findings into tasks."
-            />
-          </CardContent>
-        </Card>
       ) : (
         <TaskBoard tasks={tasks} projectMap={projectMap} />
       )}
