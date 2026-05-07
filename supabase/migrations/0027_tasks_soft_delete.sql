@@ -83,7 +83,7 @@ begin
     returning * into task_row;
   return task_row;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 grant execute on function public.restore_task(uuid) to authenticated;
 
 -- Empty-trash for the active workspace (caller must be writer).
@@ -100,5 +100,5 @@ begin
   get diagnostics deleted_count = row_count;
   return deleted_count;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 grant execute on function public.empty_trash(uuid) to authenticated;

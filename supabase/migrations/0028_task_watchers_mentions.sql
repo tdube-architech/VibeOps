@@ -104,5 +104,5 @@ begin
     on conflict do nothing;
   end loop;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 grant execute on function public.insert_task_mentions(uuid, uuid[], text, uuid) to authenticated;

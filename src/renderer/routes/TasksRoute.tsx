@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { AddTaskDialog } from '@/features/tasks/AddTaskDialog';
 import { TaskBoard } from '@/features/tasks/TaskBoard';
 import { TaskFilterBar } from '@/features/tasks/TaskFilterBar';
+import { TaskPopout } from '@/features/tasks/TaskPopout';
 import { useTaskList } from '@/features/tasks/useTasks';
 import { useProjectList } from '@/features/projects/useProjects';
 
@@ -38,6 +39,21 @@ export function TasksRoute() {
   else if (assigneeFilter !== 'all') query.assignee = assigneeFilter;
 
   const { data: tasks = [], isLoading } = useTaskList(query);
+
+  // Deep-link: ?task=<id> auto-opens the popout for that task once it loads.
+  const deepLinkTaskId = params.get('task');
+  const deepLinkTask = deepLinkTaskId ? tasks.find((t) => t.id === deepLinkTaskId) ?? null : null;
+  const [popOpen, setPopOpen] = useState(!!deepLinkTaskId);
+  useEffect(() => { if (deepLinkTaskId) setPopOpen(true); }, [deepLinkTaskId]);
+  function onPopOpenChange(o: boolean) {
+    setPopOpen(o);
+    if (!o && deepLinkTaskId) {
+      const next = new URLSearchParams(location.search);
+      next.delete('task');
+      const search = next.toString();
+      navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true });
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -81,6 +97,10 @@ export function TasksRoute() {
         </Card>
       ) : (
         <TaskBoard tasks={tasks} projectMap={projectMap} />
+      )}
+
+      {deepLinkTask && (
+        <TaskPopout task={deepLinkTask} open={popOpen} onOpenChange={onPopOpenChange} />
       )}
     </div>
   );
