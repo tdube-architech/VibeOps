@@ -34,7 +34,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 
 drop trigger if exists tasks_notify_assigned_insert on public.tasks;
 create trigger tasks_notify_assigned_insert
@@ -71,7 +71,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 
 drop trigger if exists task_mentions_notify on public.task_mentions;
 create trigger task_mentions_notify
@@ -99,6 +99,10 @@ begin
 
   for w in select user_id from public.task_watchers where task_id = new.id loop
     if w.user_id = auth.uid() then continue; end if;
+    if w.user_id = new.assignee_user_id
+       and old.assignee_user_id is distinct from new.assignee_user_id then
+      continue; -- already notified via task.assigned
+    end if;
     insert into public.notifications (user_id, workspace_id, type, title, body, link, payload)
     values (
       w.user_id,
@@ -112,9 +116,10 @@ begin
   end loop;
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public, pg_temp;
 
 drop trigger if exists tasks_notify_watchers on public.tasks;
 create trigger tasks_notify_watchers
-  after update on public.tasks
+  after update of status, priority, title, description, assignee_user_id, related_files, suggested_prompt
+  on public.tasks
   for each row execute function public.notify_task_watchers_update();
