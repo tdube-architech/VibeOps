@@ -33,8 +33,8 @@ export function UserFooter({ collapsed = false }: UserFooterProps) {
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{displayName}</div>
-            <div className="text-xs text-muted-foreground truncate">{subtitle}</div>
+            <div className="t-menu truncate">{displayName}</div>
+            <div className="t-meta truncate">{subtitle}</div>
           </div>
         )}
       </div>

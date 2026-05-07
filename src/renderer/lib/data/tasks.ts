@@ -20,6 +20,7 @@ interface TaskRow {
   created_by: string;
   created_at: string;
   completed_at: string | null;
+  deleted_at: string | null;
   version?: number;
 }
 
@@ -43,10 +44,12 @@ function rowToTask(row: TaskRow): Task {
     description: row.description,
     priority: row.priority,
     status: row.status,
+    assigneeUserId: row.assignee_user_id,
     relatedFiles: row.related_files ?? [],
     suggestedPrompt: row.suggested_prompt,
     createdAt: row.created_at,
-    completedAt: row.completed_at
+    completedAt: row.completed_at,
+    deletedAt: row.deleted_at
   };
   if (row.version !== undefined) t.version = row.version;
   return t;
@@ -60,38 +63,38 @@ async function getCurrentUserId(): Promise<string> {
 
 export async function listTasks(q: TaskListQuery & { workspaceId?: string; cloudOnly?: boolean }): Promise<Task[]> {
   const supabase = getSupabase();
-  // If a specific projectId is requested and it's local, defer to local IPC.
-  if (q.projectId && !isCloud(q.projectId)) {
-    return api.tasks.list(q);
-  }
+  if (q.projectId && !isCloud(q.projectId)) return api.tasks.list(q);
 
-  // Server tasks
-  let query = supabase
-    .from('tasks')
-    .select('*')
-    .order('created_at', { ascending: false });
+  let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
   if (q.workspaceId) query = query.eq('workspace_id', q.workspaceId);
   if (q.projectId) query = query.eq('project_id', q.projectId);
   if (q.status && q.status !== 'all') query = query.eq('status', q.status);
   if (q.priority && q.priority !== 'all') query = query.eq('priority', q.priority);
+  if (q.trashOnly) {
+    query = query.not('deleted_at', 'is', null);
+  } else {
+    query = query.is('deleted_at', null);
+  }
+  if (q.assignee === 'me') {
+    const userId = await getCurrentUserId();
+    query = query.eq('assignee_user_id', userId);
+  } else if (q.assignee) {
+    query = query.eq('assignee_user_id', q.assignee);
+  }
+
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  const cloudTasks = ((data ?? []) as TaskRow[]).map(rowToTask);
+  const cloud = ((data ?? []) as TaskRow[]).map(rowToTask);
 
-  if (q.cloudOnly) return cloudTasks;
+  if (q.cloudOnly || q.trashOnly) return cloud;
 
-  // Also include local-only tasks for legacy local projects (no projectId filter)
   if (!q.projectId) {
     try {
       const local = await api.tasks.list(q);
-      // Local IDs are non-UUID; filter to those to avoid duplication.
-      const localOnly = local.filter((t) => !isCloud(t.id));
-      return [...cloudTasks, ...localOnly];
-    } catch {
-      return cloudTasks;
-    }
+      return [...cloud, ...local.filter((t) => !isCloud(t.id))];
+    } catch { return cloud; }
   }
-  return cloudTasks;
+  return cloud;
 }
 
 export async function getTask(id: string): Promise<Task | null> {
@@ -180,6 +183,7 @@ export async function updateTask(patch: TaskPatch & { expectedVersion?: number }
     }
     if (patch.relatedFiles !== undefined) update.related_files = patch.relatedFiles;
     if (patch.suggestedPrompt !== undefined) update.suggested_prompt = patch.suggestedPrompt;
+    if (patch.assigneeUserId !== undefined) update.assignee_user_id = patch.assigneeUserId;
     const { data, error } = await supabase
       .from('tasks').update(update).eq('id', patch.id)
       .select('*').single();
@@ -194,6 +198,7 @@ export async function updateTask(patch: TaskPatch & { expectedVersion?: number }
   if (patch.status !== undefined) patchObj.status = patch.status;
   if (patch.relatedFiles !== undefined) patchObj.related_files = patch.relatedFiles;
   if (patch.suggestedPrompt !== undefined) patchObj.suggested_prompt = patch.suggestedPrompt;
+  if (patch.assigneeUserId !== undefined) patchObj.assignee_user_id = patch.assigneeUserId;
 
   const { data, error } = await supabase.rpc('update_task_versioned', {
     task_id: patch.id,
@@ -207,9 +212,69 @@ export async function updateTask(patch: TaskPatch & { expectedVersion?: number }
   return rowToTask(data as TaskRow);
 }
 
-export async function removeTask(id: string): Promise<void> {
+export async function softDeleteTask(id: string): Promise<void> {
+  if (!isCloud(id)) { await api.tasks.remove(id); return; }
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('soft_delete_task', { task_id: id });
+  if (error) throw new Error(error.message);
+}
+
+export async function restoreTask(id: string): Promise<void> {
+  if (!isCloud(id)) return; // local backend has no trash
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('restore_task', { task_id: id });
+  if (error) throw new Error(error.message);
+}
+
+export async function emptyTrash(workspaceId: string): Promise<number> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('empty_trash', { ws_id: workspaceId });
+  if (error) throw new Error(error.message);
+  return (data as number) ?? 0;
+}
+
+export async function hardDeleteTask(id: string): Promise<void> {
   if (!isCloud(id)) { await api.tasks.remove(id); return; }
   const supabase = getSupabase();
   const { error } = await supabase.from('tasks').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function removeTask(id: string): Promise<void> {
+  return softDeleteTask(id);
+}
+
+export async function listTaskWatchers(taskId: string): Promise<string[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('task_watchers').select('user_id').eq('task_id', taskId);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { user_id: string }[]).map((r) => r.user_id);
+}
+
+export async function addTaskWatcher(taskId: string, userId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('task_watchers').insert({ task_id: taskId, user_id: userId });
+  if (error && !/duplicate/i.test(error.message)) throw new Error(error.message);
+}
+
+export async function removeTaskWatcher(taskId: string, userId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from('task_watchers').delete()
+    .eq('task_id', taskId).eq('user_id', userId);
+  if (error) throw new Error(error.message);
+}
+
+export async function recordTaskMentions(
+  taskId: string, mentionedUserIds: string[], source: 'description' | 'comment', sourceRefId?: string
+): Promise<void> {
+  if (mentionedUserIds.length === 0) return;
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('insert_task_mentions', {
+    p_task_id: taskId,
+    p_user_ids: mentionedUserIds,
+    p_source: source,
+    p_source_ref_id: sourceRefId ?? null
+  });
   if (error) throw new Error(error.message);
 }

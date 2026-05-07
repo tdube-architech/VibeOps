@@ -56,7 +56,7 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
               <div className="flex items-center gap-2 font-medium">
                 <Lock className="h-4 w-4" /> Audit in progress
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="t-meta mt-1">
                 Started by {inFlight.runByDisplayName ?? inFlight.runByEmail ?? 'a teammate'} {relativeMins(inFlight.startedAt)}.
                 Wait for it to finish or it will time out after 10 minutes.
               </div>
@@ -78,7 +78,7 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
                     <span className="font-medium">Recommended next action:</span> {latest.recommendedNextAction}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <div className="flex flex-wrap gap-2 t-meta">
                   {latest.provider && <Badge variant="outline"><Sparkles className="h-3 w-3" /> {latest.provider} · {latest.model}</Badge>}
                   <span>Started {new Date(latest.startedAt).toLocaleString()}</span>
                   {latest.completedAt && <span>· {((new Date(latest.completedAt).getTime() - new Date(latest.startedAt).getTime()) / 1000).toFixed(1)}s</span>}
@@ -106,7 +106,7 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
                 <div key={r.id} className="flex items-center justify-between rounded-md border border-border px-3 py-2">
                   <div>
                     <div className="font-medium">{r.completedAt ? new Date(r.completedAt).toLocaleString() : 'in progress'}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="t-meta">
                       score {r.score ?? '—'} · {r.findings.length} findings · {r.riskLevel ?? '—'}
                     </div>
                   </div>

@@ -11,7 +11,7 @@ export function MemoryRoute() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Memory</h1>
+        <h1 className="t-h1">Memory</h1>
         <p className="text-sm text-muted-foreground">
           Per-project memory.md status. Click a project to manage its memory.
         </p>
@@ -41,7 +41,7 @@ export function MemoryRoute() {
                 >
                   <div className="min-w-0">
                     <div className="font-medium text-sm">{p.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{p.localPath}</div>
+                    <div className="t-meta truncate">{p.localPath}</div>
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     {p.lastScannedAt ? (

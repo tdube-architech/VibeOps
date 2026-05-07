@@ -149,7 +149,7 @@ export function ProjectGitTab({ project }: { project: Project }) {
               <div className="text-sm">
                 <span className="font-mono text-xs">{status.lastCommit.shortSha}</span>{' '}
                 {status.lastCommit.subject}
-                <div className="text-xs text-muted-foreground">
+                <div className="t-meta">
                   {status.lastCommit.author} · {formatDate(status.lastCommit.date)}
                 </div>
               </div>
@@ -202,7 +202,7 @@ export function ProjectGitTab({ project }: { project: Project }) {
                       {b.isCurrent ? '* ' : '  '}{b.name}
                     </span>
                   </div>
-                  <div className="col-span-2 text-xs text-muted-foreground">{b.upstream ?? '—'}</div>
+                  <div className="col-span-2 t-meta">{b.upstream ?? '—'}</div>
                   <div className="col-span-5 text-xs truncate">{b.lastCommit?.subject ?? '—'}</div>
                   <div className="col-span-2 text-xs text-muted-foreground text-right whitespace-nowrap">
                     {b.lastCommit ? formatDate(b.lastCommit.date) : '—'}

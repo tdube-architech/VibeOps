@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
 import {
-  createTask, createTaskFromFinding, listTasks, removeTask, updateTask, VersionConflictError
+  addTaskWatcher,
+  createTask, createTaskFromFinding,
+  emptyTrash as svcEmptyTrash,
+  listTasks,
+  listTaskWatchers,
+  recordTaskMentions,
+  removeTask,
+  removeTaskWatcher,
+  restoreTask as svcRestore,
+  softDeleteTask as svcSoftDelete,
+  updateTask, VersionConflictError
 } from '@/lib/data/tasks';
 import { toast } from '@/lib/toast';
 import type { Task, TaskInput, TaskListQuery, TaskPatch } from '@shared/types';
@@ -63,5 +73,68 @@ export function useRemoveTask() {
   return useMutation({
     mutationFn: (id: string) => removeTask(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY })
+  });
+}
+
+export function useTrashList() {
+  const wsId = useActiveWorkspaceId();
+  return useQuery({
+    queryKey: [...KEY, 'trash', wsId],
+    queryFn: () => {
+      const q: TaskListQuery & { workspaceId?: string } = { trashOnly: true };
+      if (isUuid(wsId) && wsId) q.workspaceId = wsId;
+      return listTasks(q);
+    },
+    enabled: isUuid(wsId)
+  });
+}
+
+export function useSoftDeleteTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => svcSoftDelete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY })
+  });
+}
+
+export function useRestoreTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => svcRestore(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY })
+  });
+}
+
+export function useEmptyTrash() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (workspaceId: string) => svcEmptyTrash(workspaceId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY })
+  });
+}
+
+export function useTaskWatchers(taskId: string | null) {
+  return useQuery({
+    queryKey: [...KEY, 'watchers', taskId],
+    queryFn: () => (taskId ? listTaskWatchers(taskId) : Promise.resolve([])),
+    enabled: !!taskId && isUuid(taskId)
+  });
+}
+
+export function useToggleWatcher() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { taskId: string; userId: string; on: boolean }) => {
+      if (args.on) await addTaskWatcher(args.taskId, args.userId);
+      else await removeTaskWatcher(args.taskId, args.userId);
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: [...KEY, 'watchers', vars.taskId] })
+  });
+}
+
+export function useRecordMentions() {
+  return useMutation({
+    mutationFn: (args: { taskId: string; userIds: string[]; source: 'description' | 'comment'; sourceRefId?: string }) =>
+      recordTaskMentions(args.taskId, args.userIds, args.source, args.sourceRefId)
   });
 }

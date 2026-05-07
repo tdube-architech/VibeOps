@@ -220,7 +220,7 @@ export function ConnectRepoDialog({ project, open, onOpenChange }: Props) {
               placeholder="https://github.com/octocat/my-app"
               className="font-mono text-xs"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="t-tiny">
               Paste an existing repo URL. We'll record it on the project and grant your workspace members
               collaborator access on it.
             </p>

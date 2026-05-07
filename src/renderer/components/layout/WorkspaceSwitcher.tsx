@@ -33,8 +33,8 @@ export function WorkspaceSwitcher({ collapsed = false }: WorkspaceSwitcherProps)
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">VibeOps</div>
-                <div className="text-xs text-muted-foreground truncate">{active?.name ?? 'No workspace'}</div>
+                <div className="t-menu-strong truncate">VibeOps</div>
+                <div className="t-meta truncate">{active?.name ?? 'No workspace'}</div>
               </div>
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </>

@@ -92,7 +92,7 @@ export function RepoAccessPanel({ project }: Props) {
                 <GitBranch className="h-3.5 w-3.5" /> Change repo
               </Button>
             </div>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="t-tiny">
               <Users className="mr-1 inline h-3 w-3" />
               Sync invites every workspace member with a linked GitHub username as a collaborator.
               Members are also auto-granted when they accept an invite to this workspace.
@@ -103,7 +103,7 @@ export function RepoAccessPanel({ project }: Props) {
             <Button size="sm" onClick={() => setOpen(true)}>
               <GitBranch className="h-3.5 w-3.5" /> Connect to GitHub
             </Button>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="t-tiny">
               Create a new repo or paste an existing URL. Either way, workspace members get added as
               collaborators with the role they hold here (owner / editor / viewer).
             </p>

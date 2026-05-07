@@ -224,7 +224,7 @@ function SpectatorTerm({ session, myUserId }: { session: AiSession; myUserId: st
         </div>
       )}
       {!controlAvailable && session.status !== 'ended' && session.status !== 'failed' && (
-        <div className="text-[11px] text-muted-foreground">
+        <div className="t-tiny">
           The owner hasn't opened remote control. Read-only.
         </div>
       )}

@@ -13,7 +13,7 @@ export function AuditsRoute() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audits</h1>
+        <h1 className="t-h1">Audits</h1>
         <p className="text-sm text-muted-foreground">
           Run audits per-project. Click a project to view findings, score, and recommended prompt.
         </p>
@@ -41,7 +41,7 @@ export function AuditsRoute() {
                   >
                     <div className="min-w-0">
                       <div className="font-medium text-sm truncate">{f.title}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="t-meta">
                         {f.projectName} · {new Date(f.createdAt).toLocaleDateString()}
                       </div>
                     </div>
@@ -78,9 +78,9 @@ export function AuditsRoute() {
                 >
                   <div className="min-w-0">
                     <div className="font-medium text-sm">{p.name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{p.primaryStack ?? '—'}</div>
+                    <div className="t-meta truncate">{p.primaryStack ?? '—'}</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="t-meta">
                     {p.lastAuditedAt ? `audited ${new Date(p.lastAuditedAt).toLocaleDateString()}` : 'never audited'}
                   </div>
                 </Link>

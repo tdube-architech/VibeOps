@@ -17,10 +17,12 @@ function toTask(row: ProjectTaskRow): Task {
     description: row.description,
     priority: row.priority as TaskPriority,
     status: row.status as TaskStatus,
+    assigneeUserId: null,
     relatedFiles: files,
     suggestedPrompt: row.suggestedPrompt,
     createdAt: row.createdAt,
-    completedAt: row.completedAt
+    completedAt: row.completedAt,
+    deletedAt: null
   };
 }
 
