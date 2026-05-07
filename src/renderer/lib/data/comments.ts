@@ -93,3 +93,26 @@ export async function updateComment(id: string, body: string): Promise<void> {
   const { error } = await supabase.from('comments').update({ body }).eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+export interface TaskCommentSummary {
+  taskId: string;
+  total: number;
+  unread: number;
+}
+
+interface SummaryRow { target_id: string; total: number; unread: number; }
+
+export async function getTaskCommentSummary(): Promise<TaskCommentSummary[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc('task_comment_summary');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as SummaryRow[]).map((r) => ({
+    taskId: r.target_id, total: r.total, unread: r.unread
+  }));
+}
+
+export async function markTaskCommentsRead(taskId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.rpc('mark_task_comments_read', { p_task_id: taskId });
+  if (error) throw new Error(error.message);
+}

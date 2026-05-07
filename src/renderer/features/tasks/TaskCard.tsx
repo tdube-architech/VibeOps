@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Trash2, ChevronRight, Copy, Check } from 'lucide-react';
+import { Trash2, ChevronRight, Copy, Check, MessageSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUpdateTask, useRemoveTask } from './useTasks';
+import { useUpdateTask, useRemoveTask, useTaskCommentSummary } from './useTasks';
 import { CommentThread } from '@/features/comments/CommentThread';
 import { TaskPopout } from './TaskPopout';
 import { toast } from '@/lib/toast';
@@ -36,6 +36,8 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 export function TaskCard({ task, projectName }: { task: Task; projectName?: string }) {
   const update = useUpdateTask();
   const remove = useRemoveTask();
+  const { data: summaries } = useTaskCommentSummary();
+  const summary = summaries?.get(task.id);
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [popOpen, setPopOpen] = useState(false);
@@ -64,6 +66,7 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
               <Badge variant={PRIORITY_BADGE[task.priority]}>{task.priority}</Badge>
               {task.sourceFindingId && <Badge variant="outline">from audit</Badge>}
               <span className="font-medium text-sm">{task.title}</span>
+              {summary && summary.total > 0 && <CommentBubble summary={summary} />}
             </div>
             {projectName && <div className="text-xs text-muted-foreground mt-1">{projectName}</div>}
           </div>
@@ -141,5 +144,24 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
     </Card>
     <TaskPopout task={task} open={popOpen} onOpenChange={setPopOpen} />
     </>
+  );
+}
+
+function CommentBubble({ summary }: { summary: { total: number; unread: number } }) {
+  const hasUnread = summary.unread > 0;
+  const label = hasUnread ? summary.unread : summary.total;
+  return (
+    <span
+      title={hasUnread ? `${summary.unread} unread of ${summary.total}` : `${summary.total} comment${summary.total === 1 ? '' : 's'}`}
+      className={[
+        'inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+        hasUnread
+          ? 'bg-primary text-primary-foreground animate-pulse shadow-[0_0_10px_2px_hsl(var(--primary)/0.7)] ring-1 ring-primary/60'
+          : 'bg-secondary text-muted-foreground'
+      ].join(' ')}
+    >
+      <MessageSquare className="h-3 w-3" />
+      {label}
+    </span>
   );
 }

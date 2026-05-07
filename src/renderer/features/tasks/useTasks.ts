@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
+import { useAuth } from '@/features/auth/useAuth';
+import { getSupabase } from '@/lib/supabase';
 import {
   addTaskWatcher,
   createTask, createTaskFromFinding,
@@ -13,6 +16,7 @@ import {
   softDeleteTask as svcSoftDelete,
   updateTask, VersionConflictError
 } from '@/lib/data/tasks';
+import { getTaskCommentSummary, markTaskCommentsRead, type TaskCommentSummary } from '@/lib/data/comments';
 import { toast } from '@/lib/toast';
 import type { Task, TaskInput, TaskListQuery, TaskPatch } from '@shared/types';
 
@@ -136,5 +140,47 @@ export function useRecordMentions() {
   return useMutation({
     mutationFn: (args: { taskId: string; userIds: string[]; source: 'description' | 'comment'; sourceRefId?: string }) =>
       recordTaskMentions(args.taskId, args.userIds, args.source, args.sourceRefId)
+  });
+}
+
+const SUMMARY_KEY = ['tasks', 'comment-summary'] as const;
+
+export function useTaskCommentSummary() {
+  const { state } = useAuth();
+  const qc = useQueryClient();
+  const enabled = state?.status === 'authenticated';
+
+  const query = useQuery({
+    queryKey: SUMMARY_KEY,
+    queryFn: async (): Promise<Map<string, TaskCommentSummary>> => {
+      const rows = await getTaskCommentSummary();
+      return new Map(rows.map((r) => [r.taskId, r]));
+    },
+    enabled
+  });
+
+  useEffect(() => {
+    if (!enabled) return;
+    const supabase = getSupabase();
+    const ch = supabase
+      .channel('comments-task-summary')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'comments', filter: 'target_type=eq.task' },
+        () => qc.invalidateQueries({ queryKey: SUMMARY_KEY }))
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'comment_reads' },
+        () => qc.invalidateQueries({ queryKey: SUMMARY_KEY }))
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [enabled, qc]);
+
+  return query;
+}
+
+export function useMarkTaskCommentsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (taskId: string) => markTaskCommentsRead(taskId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: SUMMARY_KEY })
   });
 }

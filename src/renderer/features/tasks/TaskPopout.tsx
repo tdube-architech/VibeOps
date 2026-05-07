@@ -9,7 +9,7 @@ import { CommentThread } from '@/features/comments/CommentThread';
 import { MentionInput } from './MentionInput';
 import { AssigneePicker } from './AssigneePicker';
 import { WatcherChips } from './WatcherChips';
-import { useUpdateTask, useRecordMentions } from './useTasks';
+import { useUpdateTask, useRecordMentions, useMarkTaskCommentsRead } from './useTasks';
 import { toast } from '@/lib/toast';
 import type { Task, TaskPriority, TaskStatus } from '@shared/types';
 
@@ -28,6 +28,7 @@ export function TaskPopout({
 }: { task: Task; open: boolean; onOpenChange: (o: boolean) => void }) {
   const update = useUpdateTask();
   const recordMentions = useRecordMentions();
+  const markRead = useMarkTaskCommentsRead();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? '');
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
@@ -41,6 +42,7 @@ export function TaskPopout({
     setPriority(task.priority);
     setStatus(task.status);
     setPendingMentions([]);
+    markRead.mutate(task.id);
   }, [open, task.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function save() {
