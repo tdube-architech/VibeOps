@@ -145,12 +145,13 @@ export function useRecordMentions() {
 
 const SUMMARY_KEY = ['tasks', 'comment-summary'] as const;
 
+// Per-card query. Many TaskCards mount this; do NOT subscribe to realtime here
+// or each card opens its own duplicate channel. Realtime invalidation lives in
+// useTaskCommentSummaryRealtime, mounted once in AppShell.
 export function useTaskCommentSummary() {
   const { state } = useAuth();
-  const qc = useQueryClient();
   const enabled = state?.status === 'authenticated';
-
-  const query = useQuery({
+  return useQuery({
     queryKey: SUMMARY_KEY,
     queryFn: async (): Promise<Map<string, TaskCommentSummary>> => {
       const rows = await getTaskCommentSummary();
@@ -158,12 +159,20 @@ export function useTaskCommentSummary() {
     },
     enabled
   });
+}
 
+// Mount once at the app shell level. Subscribes to comments + comment_reads
+// changes and invalidates the summary cache.
+export function useTaskCommentSummaryRealtime() {
+  const { state } = useAuth();
+  const qc = useQueryClient();
+  const enabled = state?.status === 'authenticated';
   useEffect(() => {
     if (!enabled) return;
     const supabase = getSupabase();
+    const userId = state?.user?.id ?? 'anon';
     const ch = supabase
-      .channel('comments-task-summary')
+      .channel(`comments-task-summary:${userId}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'comments', filter: 'target_type=eq.task' },
         () => qc.invalidateQueries({ queryKey: SUMMARY_KEY }))
@@ -172,9 +181,7 @@ export function useTaskCommentSummary() {
         () => qc.invalidateQueries({ queryKey: SUMMARY_KEY }))
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, [enabled, qc]);
-
-  return query;
+  }, [enabled, qc, state?.user?.id]);
 }
 
 export function useMarkTaskCommentsRead() {

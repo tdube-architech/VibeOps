@@ -9,6 +9,7 @@ import { MigrationGate } from '@/features/migrate/MigrationGate';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useActiveWorkspaceId, useEnsureDefaultWorkspace } from '@/features/workspaces/useWorkspaces';
 import { useWorkspaceTasksRealtime } from '@/lib/data/realtime';
+import { useTaskCommentSummaryRealtime } from '@/features/tasks/useTasks';
 import { pushAuditCompleted, pushScanCompleted } from '@/lib/data/sync-progress';
 import { api } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -40,6 +41,7 @@ export function AppShell() {
   const qc = useQueryClient();
   useEnsureDefaultWorkspace();
   useWorkspaceTasksRealtime(useActiveWorkspaceId());
+  useTaskCommentSummaryRealtime();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(readInitialCollapsed);
 
