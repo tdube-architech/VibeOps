@@ -60,6 +60,12 @@ export function useStartAudit() {
         await publishAuditRun(run, target);
       } catch (e) {
         console.warn('[audit] publish to server failed', e);
+        if (project.workspaceId) {
+          toast.error(
+            'Audit not shared',
+            `Run finished locally but upload failed: ${(e as Error).message}. Teammates won't see it until you re-publish.`
+          );
+        }
       }
       try {
         await pushAuditCompleted(project.id, run.completedAt ?? new Date().toISOString());

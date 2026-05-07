@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Sidebar } from './Sidebar';
@@ -25,10 +25,33 @@ const STAGE_LABEL: Record<PipelineStage, string> = {
   failed: 'Auto-pipeline failed'
 };
 
+const SIDEBAR_COLLAPSED_KEY = 'sidebar:collapsed';
+
+function readInitialCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 export function AppShell() {
   const qc = useQueryClient();
   useEnsureDefaultWorkspace();
   useWorkspaceTasksRealtime(useActiveWorkspaceId());
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(readInitialCollapsed);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch { /* ignore quota / disabled storage */ }
+      return next;
+    });
+  }, []);
 
   // On app boot, reconcile persisted terminal cells against the main
   // process's live sessions list — clears stale localTerminalId entries so
@@ -91,8 +114,8 @@ export function AppShell() {
       </div>
       <UpdateBanner />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <div className="flex flex-1 flex-col">
+        <Sidebar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+        <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
           <main className="flex-1 overflow-y-auto p-6">
             <Outlet />

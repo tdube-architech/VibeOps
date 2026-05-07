@@ -112,8 +112,9 @@ export async function saveMemoryDraft(
 
 /**
  * Generate a new draft. Always uses local main-process service (it needs scan
- * data + project tree). After local generation completes, push the resulting
- * draft to server for cloud projects.
+ * data + project tree). After local generation completes, auto-publish to
+ * memory_versions for cloud projects so teammates see the draft without the
+ * generator having to remember to click Save.
  */
 export async function generateMemoryDraft(
   projectId: string,
@@ -121,5 +122,10 @@ export async function generateMemoryDraft(
   version?: number,
   ctx?: { localPath: string; name: string }
 ): Promise<{ projectId: string; content: string; source: MemorySource; scanId: string | null }> {
-  return api.memory.generateDraft(projectId, mode, version, ctx);
+  const draft = await api.memory.generateDraft(projectId, mode, version, ctx);
+  if (isCloud(projectId)) {
+    try { await saveMemoryDraft(projectId, draft.content, draft.source); }
+    catch (e) { console.warn('[memory] auto-save to server failed', (e as Error).message); }
+  }
+  return draft;
 }
