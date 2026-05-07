@@ -1,5 +1,4 @@
 import { X, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useTaskMembers } from './useTaskMembers';
@@ -32,10 +31,9 @@ export function WatcherChips({ taskId }: { taskId: string }) {
       })}
       {eligible.length > 0 && (
         <Select onValueChange={(v) => toggle.mutate({ taskId, userId: v, on: true })}>
-          <SelectTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <Plus className="h-3 w-3" /> Watch
-            </Button>
+          <SelectTrigger className="h-7 w-auto gap-1 px-2 text-xs">
+            <Plus className="h-3 w-3" />
+            <span>Watch</span>
           </SelectTrigger>
           <SelectContent>
             {eligible.map((m) => (
