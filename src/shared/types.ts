@@ -54,10 +54,13 @@ export interface Task {
   description: string | null;
   priority: TaskPriority;
   status: TaskStatus;
+  assigneeUserId: string | null;
   relatedFiles: string[];
   suggestedPrompt: string | null;
   createdAt: string;
   completedAt: string | null;
+  deletedAt: string | null;
+  watcherUserIds?: string[];
   /** Optimistic concurrency stamp. Server-side rows only. Local rows omit. */
   version?: number;
 }
@@ -78,6 +81,7 @@ export interface TaskPatch {
   description?: string | null;
   priority?: TaskPriority;
   status?: TaskStatus;
+  assigneeUserId?: string | null;
   relatedFiles?: string[];
   suggestedPrompt?: string | null;
 }
@@ -86,6 +90,22 @@ export interface TaskListQuery {
   projectId?: string;
   status?: TaskStatus | 'all';
   priority?: TaskPriority | 'all';
+  assignee?: 'me' | string;
+  trashOnly?: boolean;
+}
+
+export interface Team {
+  id: string;
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface TeamMember {
+  teamId: string;
+  userId: string;
+  role: 'lead' | 'member';
+  joinedAt: string;
 }
 
 export type ChatRole = 'user' | 'assistant' | 'system';
