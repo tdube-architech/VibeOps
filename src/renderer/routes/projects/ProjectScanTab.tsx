@@ -31,8 +31,8 @@ export function ProjectScanTab({ project }: { project: Project }) {
   const [filter, setFilter] = useState('');
 
   const targetScanId = latest?.id;
-  const { data: files = [] } = useScanFiles(targetScanId);
-  const { data: envVars = [] } = useScanEnvVars(targetScanId);
+  const { data: files = [] } = useScanFiles(targetScanId, project.id);
+  const { data: envVars = [] } = useScanEnvVars(targetScanId, project.id);
 
   const filtered = useMemo<ScanFile[]>(() => {
     const f = filter.trim().toLowerCase();
@@ -48,7 +48,7 @@ export function ProjectScanTab({ project }: { project: Project }) {
             <CardTitle>Project Scan</CardTitle>
             <CardDescription>Read-only walk of the project tree. No files are modified.</CardDescription>
           </div>
-          <Button onClick={() => start.mutate({ id: project.id, localPath: project.localPath, name: project.name })} disabled={start.isPending}>
+          <Button onClick={() => start.mutate({ id: project.id, localPath: project.localPath, name: project.name, workspaceId: project.workspaceId })} disabled={start.isPending}>
             <Play className="h-4 w-4" /> {start.isPending ? 'Scanning…' : 'Run Scan'}
           </Button>
         </CardHeader>

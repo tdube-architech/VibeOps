@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import {
   ReactFlow, Background, Controls, MiniMap,
   ReactFlowProvider, useNodesState, useEdgesState,
+  useReactFlow, useViewport,
   addEdge as rfAddEdge,
   type Node, type Edge, type Connection, type NodeChange,
   type EdgeChange
@@ -21,6 +22,7 @@ import {
 } from './techLibrary';
 import { TechBlockNode, type TechBlockData } from './TechBlockNode';
 import { IconPickerDialog } from './IconPickerDialog';
+import { useCanvasPresence, type PresencePeer } from './useCanvasPresence';
 
 interface Props {
   canvasId: string;
@@ -37,6 +39,9 @@ export function DesignCanvas({ canvasId }: Props) {
 function CanvasInner({ canvasId }: Props) {
   const dbNodes = useCanvasNodes(canvasId);
   const dbEdges = useCanvasEdges(canvasId);
+  const { peers, setCursor, setDragging } = useCanvasPresence(canvasId);
+  const rf = useReactFlow();
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const [nodes, setNodes, onNodesChangeBase] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChangeBase] = useEdgesState<Edge>([]);
@@ -121,6 +126,36 @@ function CanvasInner({ canvasId }: Props) {
     });
   }, [dbNodes, setNodes]);
 
+  // Map peer-dragged nodeId -> color, so we can paint a ring around nodes
+  // currently being dragged by other users. If multiple peers drag the same
+  // node, the first peer's color wins (rare, deterministic).
+  const peerDragColors = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of peers) {
+      if (p.draggingNodeId && !m.has(p.draggingNodeId)) {
+        m.set(p.draggingNodeId, p.color);
+      }
+    }
+    return m;
+  }, [peers]);
+
+  const decoratedNodes = useMemo<Node[]>(() => {
+    if (peerDragColors.size === 0) return nodes;
+    return nodes.map((n) => {
+      const color = peerDragColors.get(n.id);
+      if (!color) return n;
+      return {
+        ...n,
+        style: {
+          ...(n.style ?? {}),
+          outline: `2px solid #${color}`,
+          outlineOffset: '2px',
+          borderRadius: 8
+        }
+      };
+    });
+  }, [nodes, peerDragColors]);
+
   useEffect(() => {
     setEdges(dbEdges.map(dbEdgeToRf));
   }, [dbEdges, setEdges]);
@@ -183,6 +218,19 @@ function CanvasInner({ canvasId }: Props) {
       ...nodeIds.map((id) => deleteNode(id).catch(() => {}))
     ]);
   }, [selection, setNodes, setEdges]);
+
+  const handlePointerMove = useCallback((evt: ReactPointerEvent<HTMLDivElement>) => {
+    const flow = rf.screenToFlowPosition({ x: evt.clientX, y: evt.clientY });
+    setCursor(flow.x, flow.y);
+  }, [rf, setCursor]);
+
+  const handleNodeDragStart = useCallback((_evt: unknown, node: Node) => {
+    setDragging(node.id);
+  }, [setDragging]);
+
+  const handleNodeDragStop = useCallback(() => {
+    setDragging(null);
+  }, [setDragging]);
 
   const onConnect = useCallback((conn: Connection) => {
     if (!conn.source || !conn.target) return;
@@ -357,14 +405,20 @@ function CanvasInner({ canvasId }: Props) {
             </Button>
           </div>
         </div>
-        <div className="flex-1 overflow-hidden rounded-md border border-border">
+        <div
+          ref={wrapperRef}
+          className="relative flex-1 overflow-hidden rounded-md border border-border"
+          onPointerMove={handlePointerMove}
+        >
           <ReactFlow
-            nodes={nodes}
+            nodes={decoratedNodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onSelectionChange={onSelectionChange}
+            onNodeDragStart={handleNodeDragStart}
+            onNodeDragStop={handleNodeDragStop}
             nodeTypes={nodeTypes}
             multiSelectionKeyCode={['Shift', 'Meta', 'Control']}
             deleteKeyCode={['Delete', 'Backspace']}
@@ -374,6 +428,7 @@ function CanvasInner({ canvasId }: Props) {
             <Controls />
             <MiniMap pannable zoomable />
           </ReactFlow>
+          <PeerCursorOverlay peers={peers} wrapperRef={wrapperRef} />
         </div>
       </div>
 
@@ -385,6 +440,67 @@ function CanvasInner({ canvasId }: Props) {
     </div>
   );
 }
+
+interface PeerCursorOverlayProps {
+  peers: PresencePeer[];
+  wrapperRef: RefObject<HTMLDivElement | null>;
+}
+
+const PeerCursorOverlay = memo(function PeerCursorOverlay({
+  peers,
+  wrapperRef
+}: PeerCursorOverlayProps) {
+  const rf = useReactFlow();
+  // Subscribe to viewport so cursors reposition on pan/zoom without waiting
+  // for the next peer update. The values themselves are unused.
+  useViewport();
+  if (peers.length === 0) return null;
+  const wrap = wrapperRef.current;
+  const rect = wrap?.getBoundingClientRect();
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {peers.map((p) => {
+        const screen = rf.flowToScreenPosition({ x: p.x, y: p.y });
+        const x = rect ? screen.x - rect.left : screen.x;
+        const y = rect ? screen.y - rect.top : screen.y;
+        return (
+          <div
+            key={p.userId}
+            className="absolute will-change-transform"
+            style={{
+              transform: `translate3d(${x}px, ${y}px, 0)`,
+              top: 0,
+              left: 0
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: 'block' }}
+            >
+              <path
+                d="M1 1 L1 12 L4 9 L7 13 L9 12 L6 8 L11 8 Z"
+                fill={`#${p.color}`}
+                stroke="#ffffff"
+                strokeWidth="0.75"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div
+              className="ml-2 mt-[-2px] inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium text-white shadow"
+              style={{ background: `#${p.color}` }}
+            >
+              {p.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
 
 function dbNodeToRf(n: DbNode): Node {
   return {
