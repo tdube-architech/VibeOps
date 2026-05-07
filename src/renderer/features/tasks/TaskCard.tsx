@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Trash2, ChevronRight, Copy, Check, MessageSquare } from 'lucide-react';
+import { ChevronRight, Copy, Check, MessageSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUpdateTask, useRemoveTask, useTaskCommentSummary } from './useTasks';
+import { useUpdateTask, useTaskCommentSummary } from './useTasks';
 import { CommentThread } from '@/features/comments/CommentThread';
 import { TaskPopout } from './TaskPopout';
-import { toast } from '@/lib/toast';
-import type { Task, TaskPriority, TaskStatus } from '@shared/types';
+import type { Task, TaskPriority } from '@shared/types';
 
 const PRIORITY_BADGE: Record<TaskPriority, 'destructive' | 'warning' | 'default' | 'secondary'> = {
   critical: 'destructive',
@@ -16,15 +15,6 @@ const PRIORITY_BADGE: Record<TaskPriority, 'destructive' | 'warning' | 'default'
   medium: 'default',
   low: 'secondary'
 };
-
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: 'backlog', label: 'Backlog' },
-  { value: 'next', label: 'Next' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'blocked', label: 'Blocked' },
-  { value: 'done', label: 'Done' },
-  { value: 'ignored', label: 'Ignored' }
-];
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: 'critical', label: 'Critical' },
@@ -35,7 +25,6 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
 
 export function TaskCard({ task, projectName }: { task: Task; projectName?: string }) {
   const update = useUpdateTask();
-  const remove = useRemoveTask();
   const { data: summaries } = useTaskCommentSummary();
   const summary = summaries?.get(task.id);
   const [expanded, setExpanded] = useState(false);
@@ -70,29 +59,6 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
             </div>
             {projectName && <div className="text-xs text-muted-foreground mt-1">{projectName}</div>}
           </div>
-          <div onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-            <Select value={task.status} onValueChange={(v) => update.mutate({ id: task.id, status: v as TaskStatus, expectedVersion: task.version })}>
-              <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (window.confirm(`Delete task "${task.title}"?`)) {
-                remove.mutate(task.id, {
-                  onSuccess: () => toast.success('Task deleted')
-                });
-              }
-            }}
-            onDoubleClick={(e) => e.stopPropagation()}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
         </div>
 
         {expanded && (

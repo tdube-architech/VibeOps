@@ -21,6 +21,7 @@ interface TaskRow {
   created_at: string;
   completed_at: string | null;
   deleted_at: string | null;
+  position: number | null;
   version?: number;
 }
 
@@ -49,7 +50,8 @@ function rowToTask(row: TaskRow): Task {
     suggestedPrompt: row.suggested_prompt,
     createdAt: row.created_at,
     completedAt: row.completed_at,
-    deletedAt: row.deleted_at
+    deletedAt: row.deleted_at,
+    position: row.position
   };
   if (row.version !== undefined) t.version = row.version;
   return t;
@@ -65,7 +67,9 @@ export async function listTasks(q: TaskListQuery & { workspaceId?: string; cloud
   const supabase = getSupabase();
   if (q.projectId && !isCloud(q.projectId)) return api.tasks.list(q);
 
-  let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
+  let query = supabase.from('tasks').select('*')
+    .order('position', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false });
   if (q.workspaceId) query = query.eq('workspace_id', q.workspaceId);
   if (q.projectId) query = query.eq('project_id', q.projectId);
   if (q.status && q.status !== 'all') query = query.eq('status', q.status);
@@ -184,6 +188,7 @@ export async function updateTask(patch: TaskPatch & { expectedVersion?: number }
     if (patch.relatedFiles !== undefined) update.related_files = patch.relatedFiles;
     if (patch.suggestedPrompt !== undefined) update.suggested_prompt = patch.suggestedPrompt;
     if (patch.assigneeUserId !== undefined) update.assignee_user_id = patch.assigneeUserId;
+    if (patch.position !== undefined) update.position = patch.position;
     const { data, error } = await supabase
       .from('tasks').update(update).eq('id', patch.id)
       .select('*').single();
@@ -199,6 +204,7 @@ export async function updateTask(patch: TaskPatch & { expectedVersion?: number }
   if (patch.relatedFiles !== undefined) patchObj.related_files = patch.relatedFiles;
   if (patch.suggestedPrompt !== undefined) patchObj.suggested_prompt = patch.suggestedPrompt;
   if (patch.assigneeUserId !== undefined) patchObj.assignee_user_id = patch.assigneeUserId;
+  if (patch.position !== undefined) patchObj.position = patch.position;
 
   const { data, error } = await supabase.rpc('update_task_versioned', {
     task_id: patch.id,

@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DraggableTaskCard } from './DraggableTaskCard';
 import type { Task, TaskStatus } from '@shared/types';
@@ -22,17 +23,19 @@ export function TaskColumn({
         <CardDescription className="sr-only">Tasks in {label}</CardDescription>
       </CardHeader>
       <CardContent ref={setNodeRef} className="space-y-2 min-h-24">
-        {items.length === 0 ? (
-          <div className="text-xs text-muted-foreground py-4 text-center">—</div>
-        ) : (
-          items.map((t) => (
-            <DraggableTaskCard
-              key={t.id}
-              task={t}
-              {...(projectMap.get(t.projectId) ? { projectName: projectMap.get(t.projectId)! } : {})}
-            />
-          ))
-        )}
+        <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          {items.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-4 text-center">—</div>
+          ) : (
+            items.map((t) => (
+              <DraggableTaskCard
+                key={t.id}
+                task={t}
+                {...(projectMap.get(t.projectId) ? { projectName: projectMap.get(t.projectId)! } : {})}
+              />
+            ))
+          )}
+        </SortableContext>
       </CardContent>
     </Card>
   );

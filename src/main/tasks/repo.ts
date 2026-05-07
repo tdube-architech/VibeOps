@@ -22,7 +22,8 @@ function toTask(row: ProjectTaskRow): Task {
     suggestedPrompt: row.suggestedPrompt,
     createdAt: row.createdAt,
     completedAt: row.completedAt,
-    deletedAt: null
+    deletedAt: null,
+    position: null
   };
 }
 

@@ -60,6 +60,7 @@ export interface Task {
   createdAt: string;
   completedAt: string | null;
   deletedAt: string | null;
+  position: number | null;
   watcherUserIds?: string[];
   /** Optimistic concurrency stamp. Server-side rows only. Local rows omit. */
   version?: number;
@@ -84,6 +85,7 @@ export interface TaskPatch {
   assigneeUserId?: string | null;
   relatedFiles?: string[];
   suggestedPrompt?: string | null;
+  position?: number;
 }
 
 export interface TaskListQuery {
