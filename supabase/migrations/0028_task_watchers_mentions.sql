@@ -9,6 +9,8 @@ create index task_watchers_user_idx on public.task_watchers (user_id);
 
 alter table public.task_watchers enable row level security;
 
+-- Note: trashed tasks (deleted_at is not null) are filtered by tasks_select,
+-- so watcher rows referencing trashed tasks won't be readable until restore.
 create policy task_watchers_select on public.task_watchers for select
   using (
     exists (
@@ -19,7 +21,25 @@ create policy task_watchers_select on public.task_watchers for select
   );
 
 create policy task_watchers_insert on public.task_watchers for insert
-  with check (user_id = auth.uid());
+  with check (
+    -- A user can always self-watch.
+    user_id = auth.uid()
+    or
+    -- A workspace writer can add another workspace member as a watcher.
+    (
+      exists (
+        select 1 from public.tasks t
+        where t.id = task_watchers.task_id
+          and public.is_workspace_writer(t.workspace_id)
+      )
+      and exists (
+        select 1 from public.workspace_members wm
+        join public.tasks t on t.workspace_id = wm.workspace_id
+        where t.id = task_watchers.task_id
+          and wm.user_id = task_watchers.user_id
+      )
+    )
+  );
 
 create policy task_watchers_delete on public.task_watchers for delete
   using (user_id = auth.uid());
@@ -39,6 +59,9 @@ create table if not exists public.task_mentions (
 );
 create index task_mentions_task_idx on public.task_mentions (task_id);
 create index task_mentions_user_idx on public.task_mentions (mentioned_user);
+-- Dedupe mentions: same user mentioned in same source slot shouldn't fan out twice.
+create unique index task_mentions_unique_per_source
+  on public.task_mentions (task_id, mentioned_user, source, coalesce(source_ref_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
 alter table public.task_mentions enable row level security;
 
@@ -56,20 +79,29 @@ create policy task_mentions_select on public.task_mentions for select
 create or replace function public.insert_task_mentions(
   p_task_id uuid, p_user_ids uuid[], p_source text, p_source_ref_id uuid
 ) returns void as $$
-declare uid uuid;
+declare
+  v_uid uuid;
+  v_ws_id uuid;
 begin
   if p_source not in ('description','comment') then
     raise exception 'BAD_SOURCE' using errcode='22023';
   end if;
-  if not exists (
-    select 1 from public.tasks t
-    where t.id = p_task_id and public.is_project_visible(t.project_id)
-  ) then
+  select t.workspace_id into v_ws_id
+    from public.tasks t
+    where t.id = p_task_id and public.is_project_visible(t.project_id);
+  if v_ws_id is null then
     raise exception 'NOT_AUTHORIZED' using errcode='42501';
   end if;
-  foreach uid in array p_user_ids loop
+  foreach v_uid in array p_user_ids loop
+    if not exists (
+      select 1 from public.workspace_members wm
+      where wm.workspace_id = v_ws_id and wm.user_id = v_uid
+    ) then
+      continue; -- silently skip non-members; UI shouldn't surface them
+    end if;
     insert into public.task_mentions (task_id, mentioned_user, source, source_ref_id, created_by)
-    values (p_task_id, uid, p_source, p_source_ref_id, auth.uid());
+    values (p_task_id, v_uid, p_source, p_source_ref_id, auth.uid())
+    on conflict do nothing;
   end loop;
 end;
 $$ language plpgsql security definer;
