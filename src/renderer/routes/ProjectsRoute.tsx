@@ -11,7 +11,7 @@ export function ProjectsRoute() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
+          <h1 className="t-h1">Projects</h1>
           <p className="text-sm text-muted-foreground">All registered local project folders.</p>
         </div>
         <div className="flex gap-2">

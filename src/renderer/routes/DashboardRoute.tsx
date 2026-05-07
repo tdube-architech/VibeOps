@@ -14,7 +14,7 @@ export function DashboardRoute() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="t-h1">Dashboard</h1>
           <p className="text-sm text-muted-foreground">High-level view of all VibeOps projects.</p>
         </div>
         <div className="flex gap-2">
@@ -36,7 +36,7 @@ export function DashboardRoute() {
           <ActivityFeed />
         </div>
       </div>
-      {isLoading && <div className="text-xs text-muted-foreground">Loading dashboard…</div>}
+      {isLoading && <div className="t-meta">Loading dashboard…</div>}
     </div>
   );
 }

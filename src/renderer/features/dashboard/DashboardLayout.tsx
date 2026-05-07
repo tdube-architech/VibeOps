@@ -14,7 +14,7 @@ export function DashboardLayout() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="t-h1">Dashboard</h1>
           <p className="text-sm text-muted-foreground">High-level view of all VibeOps projects.</p>
         </div>
         <AddProjectButton />

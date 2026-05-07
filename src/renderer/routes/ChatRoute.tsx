@@ -16,7 +16,7 @@ export function ChatRoute() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">AI Chat</h1>
+        <h1 className="t-h1">AI Chat</h1>
         <p className="text-sm text-muted-foreground">Project-scoped chat. Source code is not sent — only memory.md, scan summary, and file paths.</p>
       </div>
       <Card>

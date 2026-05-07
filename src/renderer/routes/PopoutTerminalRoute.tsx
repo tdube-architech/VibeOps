@@ -69,7 +69,7 @@ export function PopoutTerminalRoute() {
 
   return (
     <div className="flex h-screen w-screen flex-col gap-2 bg-background p-3">
-      <div className="text-xs text-muted-foreground">
+      <div className="t-meta">
         {project.name} · <code>{cwd}</code> · {titleParam ?? 'Terminal'}
       </div>
       <div className="flex-1 overflow-hidden">

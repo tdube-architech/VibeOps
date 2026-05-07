@@ -140,7 +140,7 @@ export function ProjectDesignTab({ project }: Props) {
               ))}
             </div>
           ) : (
-            <div className="text-xs text-muted-foreground">
+            <div className="t-meta">
               No canvases yet — create one to start sketching the architecture.
             </div>
           )}

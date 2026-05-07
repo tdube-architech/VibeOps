@@ -66,7 +66,7 @@ export function ActivityPanel({ projectId }: Props) {
                   <GitCommitHorizontal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                   <div className="min-w-0 flex-1 text-xs">
                     <div className="truncate">{c.message}</div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="t-tiny">
                       <span className="font-mono">{c.shortSha ?? c.sha.slice(0, 7)}</span>
                       {c.branch && <> · {c.branch}</>}
                       {' · '}
