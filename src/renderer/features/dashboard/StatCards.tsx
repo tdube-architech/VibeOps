@@ -1,10 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useProjectList } from '@/features/projects/useProjects';
 import type { DashboardSummary } from '@shared/types';
 
 export function StatCards({ summary }: { summary: DashboardSummary | undefined }) {
   const totals = summary?.totals;
+  // Use the same merged source the ProjectTable uses so the count matches
+  // exactly what the user sees (cloud-synced + unmigrated locals only).
+  const { data: projects } = useProjectList();
+  const projectCount = projects?.length ?? totals?.projects ?? '—';
   const tiles = [
-    { label: 'Total Projects', value: totals?.projects ?? '—' },
+    { label: 'Total Projects', value: projectCount },
     { label: 'Needs Audit', value: totals?.needsAudit ?? '—' },
     { label: 'Critical Findings', value: totals?.criticalFindings ?? '—' },
     { label: 'Memory Current', value: totals?.memoryCurrent ?? '—' }
