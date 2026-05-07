@@ -1,0 +1,19 @@
+/* App-wide type scale. Use these utility classes wherever possible.
+   Menus stay legible (no smaller than 13px). */
+
+@layer components {
+  .t-h1 { @apply text-2xl font-semibold tracking-tight; }
+  .t-h2 { @apply text-xl  font-semibold tracking-tight; }
+  .t-h3 { @apply text-lg  font-medium; }
+  .t-h4 { @apply text-base font-medium; }
+
+  .t-body  { @apply text-sm; }
+  .t-mono  { @apply font-mono text-sm; }
+  .t-meta  { @apply text-xs text-muted-foreground; }
+  .t-tiny  { @apply text-[11px] text-muted-foreground; }
+
+  .t-menu        { @apply text-sm; }
+  .t-menu-strong { @apply text-sm font-medium; }
+  .t-label       { @apply text-sm font-medium; }
+  .t-button      { @apply text-sm font-medium; }
+}
