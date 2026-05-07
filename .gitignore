@@ -39,3 +39,6 @@ desktop.ini
 
 # test
 coverage/
+
+# git worktrees
+.worktrees/
