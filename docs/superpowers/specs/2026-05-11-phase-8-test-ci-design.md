@@ -1,7 +1,7 @@
 # Phase 8 — CI Test Workflow Design
 
 **Date:** 2026-05-11
-**Status:** Approved (brainstorm)
+**Status:** Shipped
 **Scope:** Add GitHub Actions workflow that runs the full quality gate on PR + push to main. Zero secret setup. Solo/private repo profile.
 
 ## Goal
