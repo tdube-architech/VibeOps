@@ -5,6 +5,7 @@ import { ShareProjectDialog } from '@/features/projects/ShareProjectDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useProject, useArchiveProject, useUnarchiveProject, useRemoveProject } from '@/features/projects/useProjects';
+import { useAutoScan } from '@/features/projects/useAutoScan';
 import { EditProjectDialog } from '@/features/projects/EditProjectDialog';
 import { ProjectOverviewTab } from './ProjectOverviewTab';
 import { ProjectScanTab } from './ProjectScanTab';
@@ -25,6 +26,7 @@ export function ProjectDetailRoute() {
   const navigate = useNavigate();
   const { data: project, isLoading } = useProject(id);
   useProjectRealtime(id);
+  useAutoScan(project ?? undefined);
   const isCloud = project?.source !== 'local' && Boolean(project?.localPath);
   useProjectActivity(isCloud ? project?.id : null, isCloud ? project?.localPath : null);
   const archive = useArchiveProject();
