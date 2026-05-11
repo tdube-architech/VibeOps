@@ -10,6 +10,7 @@
 - **Project chat** — sessions, transcript, composer, dashboard preview.
 - **Git status detection** — `gitInfo` IPC; rendered in `ProjectOverviewTab` + `ProjectGitTab`.
 - **Typography pass** — `t-h1/t-h2/t-meta` utilities applied app-wide.
+- **CI test workflow** — `.github/workflows/test.yml` (phase 8): pnpm test + typecheck + build on PR + push to main.
 - **Stripe billing** — subscriptions, checkout, portal, webhook edge fn.
 - **GitHub integration** — list orgs, create/check repo, grant collab edge fns.
 - **AI session diff-watch + memory generator** — chokidar-based watchers.
