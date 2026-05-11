@@ -55,3 +55,42 @@ export async function runMain({ argv, markerPath = MARKER_PATH, builders }) {
   writeMarker(markerPath, target);
   console.log(`rebuild-sqlite: built for ${target}`);
 }
+
+export function runBuilder(command, args, spawn = spawnSync) {
+  const result = spawn(command, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} exit ${result.status}`);
+  }
+}
+
+export function electronBuilder() {
+  runBuilder('npx', ['electron-rebuild', '-v', ELECTRON_VERSION, '--only', 'better-sqlite3', '--force']);
+}
+
+export function nodeBuilder() {
+  runBuilder('pnpm', ['rebuild', 'better-sqlite3', '--build-from-source'], (cmd, args, opts) =>
+    spawnSync(cmd, args, {
+      ...opts,
+      env: { ...process.env, npm_config_runtime: 'node', npm_config_build_from_source: 'true' }
+    })
+  );
+}
+
+// CLI entry — runs when invoked directly
+const isMain = import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` ||
+               import.meta.url.endsWith(path.basename(process.argv[1] ?? ''));
+if (isMain) {
+  try {
+    await runMain({
+      argv: process.argv.slice(2),
+      builders: { electron: electronBuilder, node: nodeBuilder }
+    });
+  } catch (err) {
+    console.error(`rebuild-sqlite: ${err.message}`);
+    if (err.message.includes('exit') || err.code === 'ENOENT') {
+      console.error('rebuild-sqlite: install platform build tools (Windows: VS Build Tools; macOS: xcode-select --install; Linux: build-essential)');
+    }
+    process.exit(1);
+  }
+}

@@ -9,6 +9,7 @@ import {
   shouldRebuild,
   runMain
 } from '../../scripts/rebuild-sqlite.mjs';
+import { electronBuilder, nodeBuilder, runBuilder } from '../../scripts/rebuild-sqlite.mjs';
 
 let tmp: string;
 beforeEach(() => {
@@ -116,5 +117,22 @@ describe('runMain', () => {
       }
     })).rejects.toThrow(/boom/);
     expect(readMarker(markerFile)).toBeNull();
+  });
+});
+
+describe('builders', () => {
+  it('runBuilder throws on non-zero exit', () => {
+    const fake = (cmd: string, args: string[]) => ({ status: 7, signal: null, error: null, stdout: '', stderr: '', pid: 0, output: [] });
+    expect(() => runBuilder('node', ['--bad'], fake as never)).toThrow(/exit 7/);
+  });
+
+  it('runBuilder returns when exit zero', () => {
+    const fake = () => ({ status: 0, signal: null, error: null, stdout: '', stderr: '', pid: 0, output: [] });
+    expect(() => runBuilder('node', ['--ok'], fake as never)).not.toThrow();
+  });
+
+  it('runBuilder rethrows spawn error', () => {
+    const fake = () => ({ status: null, signal: null, error: new Error('ENOENT'), stdout: '', stderr: '', pid: 0, output: [] });
+    expect(() => runBuilder('cmd', [], fake as never)).toThrow(/ENOENT/);
   });
 });
