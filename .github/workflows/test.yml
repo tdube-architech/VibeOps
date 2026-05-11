@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Write stub .env
+        shell: bash
+        run: |
+          cat > .env <<'EOF'
+          MAIN_VITE_SUPABASE_URL=https://stub.supabase.co
+          MAIN_VITE_SUPABASE_ANON_KEY=stub-anon-key
+          RENDERER_VITE_SUPABASE_URL=https://stub.supabase.co
+          RENDERER_VITE_SUPABASE_ANON_KEY=stub-anon-key
+          EOF
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm build:typecheck
+
+      - name: Build
+        run: pnpm build
