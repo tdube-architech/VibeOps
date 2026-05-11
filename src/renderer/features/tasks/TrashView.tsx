@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, RotateCcw } from 'lucide-react';
 import { useTrashList, useRestoreTask, useEmptyTrash } from './useTasks';
 import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
+import { relativeTime } from '@/lib/relative-time';
 import { toast } from '@/lib/toast';
 
 export function TrashView({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -37,7 +38,7 @@ export function TrashView({ open, onOpenChange }: { open: boolean; onOpenChange:
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{t.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    Deleted {t.deletedAt ? new Date(t.deletedAt).toLocaleString() : '—'}
+                    Deleted {t.deletedAt ? <span title={t.deletedAt}>{relativeTime(t.deletedAt)}</span> : '—'}
                   </div>
                 </div>
                 <Button
