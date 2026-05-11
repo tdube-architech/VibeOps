@@ -41,4 +41,17 @@ export function parseRuntime(argv) {
   return value;
 }
 
-// main entry omitted from this task — added in A2
+export async function runMain({ argv, markerPath = MARKER_PATH, builders }) {
+  const runtime = parseRuntime(argv);
+  const target = targetTag(runtime);
+  const current = readMarker(markerPath);
+  if (!shouldRebuild(current, target)) {
+    console.log(`rebuild-sqlite: skipped (already ${target})`);
+    return;
+  }
+  const builder = builders[runtime];
+  if (!builder) throw new Error(`no builder for runtime: ${runtime}`);
+  await builder();
+  writeMarker(markerPath, target);
+  console.log(`rebuild-sqlite: built for ${target}`);
+}

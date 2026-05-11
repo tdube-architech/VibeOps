@@ -6,7 +6,8 @@ import {
   readMarker,
   writeMarker,
   targetTag,
-  shouldRebuild
+  shouldRebuild,
+  runMain
 } from '../../scripts/rebuild-sqlite.mjs';
 
 let tmp: string;
@@ -50,5 +51,70 @@ describe('marker helpers', () => {
 
   it('shouldRebuild true when marker differs from target', () => {
     expect(shouldRebuild('node-v137', 'electron-v130')).toBe(true);
+  });
+});
+
+describe('runMain', () => {
+  it('parseRuntime throws on missing arg', async () => {
+    await expect(runMain({ argv: [], builders: {} })).rejects.toThrow(/missing --runtime/);
+  });
+
+  it('skips rebuild when marker matches target', async () => {
+    const calls: string[] = [];
+    const markerFile = path.join(tmp, 'marker');
+    writeMarker(markerFile, 'electron-v130');
+    await runMain({
+      argv: ['--runtime=electron'],
+      markerPath: markerFile,
+      builders: {
+        electron: () => { calls.push('electron'); },
+        node: () => { calls.push('node'); }
+      }
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it('invokes electron builder and writes marker when missing', async () => {
+    const calls: string[] = [];
+    const markerFile = path.join(tmp, 'marker');
+    await runMain({
+      argv: ['--runtime=electron'],
+      markerPath: markerFile,
+      builders: {
+        electron: () => { calls.push('electron'); },
+        node: () => { calls.push('node'); }
+      }
+    });
+    expect(calls).toEqual(['electron']);
+    expect(readMarker(markerFile)).toBe('electron-v130');
+  });
+
+  it('invokes node builder and writes node marker on mismatch', async () => {
+    const calls: string[] = [];
+    const markerFile = path.join(tmp, 'marker');
+    writeMarker(markerFile, 'electron-v130');
+    await runMain({
+      argv: ['--runtime=node'],
+      markerPath: markerFile,
+      builders: {
+        electron: () => { calls.push('electron'); },
+        node: () => { calls.push('node'); }
+      }
+    });
+    expect(calls).toEqual(['node']);
+    expect(readMarker(markerFile)).toBe(`node-v${process.versions.modules}`);
+  });
+
+  it('does not write marker when builder throws', async () => {
+    const markerFile = path.join(tmp, 'marker');
+    await expect(runMain({
+      argv: ['--runtime=electron'],
+      markerPath: markerFile,
+      builders: {
+        electron: () => { throw new Error('boom'); },
+        node: () => {}
+      }
+    })).rejects.toThrow(/boom/);
+    expect(readMarker(markerFile)).toBeNull();
   });
 });
