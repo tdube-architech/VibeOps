@@ -172,6 +172,7 @@ export const projectTasks = sqliteTable('project_tasks', {
   id: text('id').primaryKey(),
   projectId: text('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
   sourceFindingId: text('source_finding_id'),
+  sourceSignature: text('source_signature'),
   title: text('title').notNull(),
   description: text('description'),
   priority: text('priority').notNull().default('medium'),
