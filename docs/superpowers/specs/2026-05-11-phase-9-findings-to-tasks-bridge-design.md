@@ -1,7 +1,7 @@
 # Phase 9 — Findings → Tasks Bridge Design
 
 **Date:** 2026-05-11
-**Status:** Approved (brainstorm)
+**Status:** Shipped
 **Scope:** Auto-create board tasks from audit findings after every audit completes. Dedupe across re-audits via stable signature. Renderer-side bridge so the existing cloud/local task data layer routes correctly. Toast feedback only.
 
 ## Goal
