@@ -70,7 +70,7 @@ export function electronBuilder() {
 }
 
 export function nodeBuilder() {
-  runBuilder('pnpm', ['rebuild', 'better-sqlite3', '--build-from-source'], (cmd, args, opts) =>
+  runBuilder('pnpm', ['rebuild', 'better-sqlite3'], (cmd, args, opts) =>
     spawnSync(cmd, args, {
       ...opts,
       env: { ...process.env, npm_config_runtime: 'node', npm_config_build_from_source: 'true' }
