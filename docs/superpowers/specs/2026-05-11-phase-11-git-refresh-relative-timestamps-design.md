@@ -1,7 +1,7 @@
 # Phase 11 — Git Refresh + Relative Timestamps Design
 
 **Date:** 2026-05-11
-**Status:** Approved (brainstorm)
+**Status:** Shipped
 **Scope:** Two coupled improvements driven by phase-10 testing feedback. (1) App-wide human-friendly relative timestamps with absolute-time tooltip. (2) On auto-scan for cloud-synced projects with local checkouts: `git fetch` + safe `pull --ff-only` when working tree is clean; otherwise fetch only and surface remote-ahead state to the UI.
 
 ## Goals
