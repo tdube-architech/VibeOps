@@ -50,6 +50,7 @@ export interface Task {
   id: string;
   projectId: string;
   sourceFindingId: string | null;
+  sourceSignature: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;
@@ -74,6 +75,7 @@ export interface TaskInput {
   relatedFiles?: string[];
   suggestedPrompt?: string;
   sourceFindingId?: string;
+  sourceSignature?: string;
 }
 
 export interface TaskPatch {
