@@ -1,7 +1,7 @@
 # Phase 10-prelude — Auto-scan on Project Open Design
 
 **Date:** 2026-05-11
-**Status:** Approved (brainstorm)
+**Status:** Shipped
 **Scope:** Auto-trigger project scan + git status refresh when the user opens a project's detail route, subject to a 5-minute cooldown. Reuse the existing pipeline progress toasts for feedback.
 
 > **Phase naming note:** This is a small UX prelude inserted before the originally-planned phase 10 (handoff doc export). It's tagged-but-small so order-B remains roughly intact: this becomes phase 10, with handoff/A/E/F+D/G shifting by one.
