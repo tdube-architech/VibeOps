@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 const ELECTRON_ABI = 'electron-v130';
 const ELECTRON_VERSION = '41.5.0';
@@ -78,8 +79,9 @@ export function nodeBuilder() {
 }
 
 // CLI entry — runs when invoked directly
-const isMain = import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` ||
-               import.meta.url.endsWith(path.basename(process.argv[1] ?? ''));
+const isMain = process.argv[1]
+  ? fileURLToPath(import.meta.url) === path.resolve(process.argv[1])
+  : false;
 if (isMain) {
   try {
     await runMain({
