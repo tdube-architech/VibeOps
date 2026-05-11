@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useProjectList } from '@/features/projects/useProjects';
 import { useDashboardSummary } from '@/features/dashboard/useDashboard';
 import { EmptyState } from '@/components/EmptyState';
+import { relativeTime } from '@/lib/relative-time';
 
 export function AuditsRoute() {
   const { data: projects = [], isLoading } = useProjectList();
@@ -81,7 +82,9 @@ export function AuditsRoute() {
                     <div className="t-meta truncate">{p.primaryStack ?? '—'}</div>
                   </div>
                   <div className="t-meta">
-                    {p.lastAuditedAt ? `audited ${new Date(p.lastAuditedAt).toLocaleDateString()}` : 'never audited'}
+                    {p.lastAuditedAt
+                      ? <>audited <span title={p.lastAuditedAt}>{relativeTime(p.lastAuditedAt)}</span></>
+                      : 'never audited'}
                   </div>
                 </Link>
               ))}

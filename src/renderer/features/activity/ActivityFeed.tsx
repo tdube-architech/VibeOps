@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getSupabase } from '@/lib/supabase';
 import { useActiveWorkspaceId } from '@/features/workspaces/useWorkspaces';
 import { useAuth } from '@/features/auth/useAuth';
+import { relativeTime } from '@/lib/relative-time';
 
 interface ActivityRow {
   id: string;
@@ -23,18 +24,6 @@ interface ActivityWithProfile extends ActivityRow {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function relativeTime(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return 'just now';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return `${d}d ago`;
-}
 
 function describe(row: ActivityWithProfile): string {
   const actor = row.actor_display_name ?? row.actor_email?.split('@')[0] ?? 'Someone';
@@ -121,7 +110,9 @@ export function ActivityFeed() {
               <li key={row.id} className="flex items-start gap-2 border-b border-border/40 pb-2 last:border-b-0 last:pb-0">
                 <div className="flex-1 min-w-0">
                   <div className="truncate">{describe(row)}</div>
-                  <div className="text-xs text-muted-foreground">{relativeTime(row.created_at)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    <span title={row.created_at}>{relativeTime(row.created_at)}</span>
+                  </div>
                 </div>
               </li>
             ))}

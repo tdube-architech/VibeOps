@@ -8,6 +8,7 @@ import { ProjectSummaryCard } from '@/features/projects/ProjectSummaryCard';
 import { useLatestScan } from '@/features/projects/useScans';
 import { useMigrateOne } from '@/features/migrate/useMigrate';
 import { api } from '@/lib/api';
+import { relativeTime } from '@/lib/relative-time';
 import { toast } from '@/lib/toast';
 import type { Project } from '@shared/types';
 
@@ -57,7 +58,9 @@ export function ProjectOverviewTab({ project }: { project: Project }) {
           {row('Repository', project.repoUrl ?? git?.remoteUrl ?? '—')}
           {row('Category', project.category ?? '—')}
           {row('Tags', project.tags.length === 0 ? '—' : project.tags.join(', '))}
-          {row('Last Scan', project.lastScannedAt ?? 'Never')}
+          {row('Last Scan', project.lastScannedAt
+            ? <span title={project.lastScannedAt}>{relativeTime(project.lastScannedAt)}</span>
+            : 'Never')}
           {row('Last Audit', project.lastAuditedAt ?? 'Never')}
           {row('Created', new Date(project.createdAt).toLocaleString())}
         </CardContent>

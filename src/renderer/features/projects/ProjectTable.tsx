@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Cloud, HardDrive, Upload } from 'lucide-react';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { useMigrateOne } from '@/features/migrate/useMigrate';
+import { relativeTime } from '@/lib/relative-time';
 import { toast } from '@/lib/toast';
 import { useProjectList } from './useProjects';
 import { useSelectedProjectId, useSetSelectedProject } from './selectedProject';
@@ -50,8 +51,14 @@ const columns: ColumnDef<Project>[] = [
     accessorKey: 'status',
     cell: ({ row }) => <ProjectStatusBadge status={row.original.status} />
   },
-  { header: 'Last Scan', accessorKey: 'lastScannedAt', cell: ({ row }) => fmtDate(row.original.lastScannedAt) },
-  { header: 'Last Audit', accessorKey: 'lastAuditedAt', cell: ({ row }) => fmtDate(row.original.lastAuditedAt) }
+  { header: 'Last Scan', accessorKey: 'lastScannedAt', cell: ({ row }) => {
+      const v = row.original.lastScannedAt;
+      return v ? <span title={v}>{relativeTime(v)}</span> : '—';
+    } },
+  { header: 'Last Audit', accessorKey: 'lastAuditedAt', cell: ({ row }) => {
+      const v = row.original.lastAuditedAt;
+      return v ? <span title={v}>{relativeTime(v)}</span> : '—';
+    } }
 ];
 
 interface Props {

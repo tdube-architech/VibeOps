@@ -7,6 +7,7 @@ import { AuditScoreRing } from '@/features/projects/AuditScoreRing';
 import { FindingsTable } from '@/features/projects/FindingsTable';
 import { RecommendedPromptCard } from '@/features/projects/RecommendedPromptCard';
 import { useAuditList, useLatestAudit, useStartAudit, usePrompts, useInFlightAudit } from '@/features/projects/useAudits';
+import { relativeTime } from '@/lib/relative-time';
 import type { Project, AuditRun, GeneratedPrompt } from '@shared/types';
 
 function relativeMins(iso: string): string {
@@ -80,7 +81,7 @@ export function ProjectAuditsTab({ project }: { project: Project }) {
                 )}
                 <div className="flex flex-wrap gap-2 t-meta">
                   {latest.provider && <Badge variant="outline"><Sparkles className="h-3 w-3" /> {latest.provider} · {latest.model}</Badge>}
-                  <span>Started {new Date(latest.startedAt).toLocaleString()}</span>
+                  <span>Started <span title={latest.startedAt}>{relativeTime(latest.startedAt)}</span></span>
                   {latest.completedAt && <span>· {((new Date(latest.completedAt).getTime() - new Date(latest.startedAt).getTime()) / 1000).toFixed(1)}s</span>}
                 </div>
               </div>

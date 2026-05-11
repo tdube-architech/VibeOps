@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useUpdateTask, useTaskCommentSummary } from './useTasks';
 import { CommentThread } from '@/features/comments/CommentThread';
 import { TaskPopout } from './TaskPopout';
+import { relativeTime } from '@/lib/relative-time';
 import type { Task, TaskPriority } from '@shared/types';
 
 const PRIORITY_BADGE: Record<TaskPriority, 'destructive' | 'warning' | 'default' | 'secondary'> = {
@@ -98,8 +99,10 @@ export function TaskCard({ task, projectName }: { task: Task; projectName?: stri
               </div>
             )}
             <div className="text-[10px] text-muted-foreground">
-              Created {new Date(task.createdAt).toLocaleString()}
-              {task.completedAt && ` · Completed ${new Date(task.completedAt).toLocaleString()}`}
+              Created <span title={task.createdAt}>{relativeTime(task.createdAt)}</span>
+              {task.completedAt && (
+                <> · Completed <span title={task.completedAt}>{relativeTime(task.completedAt)}</span></>
+              )}
             </div>
             <div className="border-t border-border/40 pt-2">
               <CommentThread target="task" targetId={task.id} />
