@@ -10,6 +10,7 @@ interface TaskRow {
   project_id: string;
   workspace_id: string;
   source_finding_id: string | null;
+  source_signature: string | null;
   title: string;
   description: string | null;
   priority: TaskPriority;
@@ -41,6 +42,7 @@ function rowToTask(row: TaskRow): Task {
     id: row.id,
     projectId: row.project_id,
     sourceFindingId: row.source_finding_id,
+    sourceSignature: row.source_signature,
     title: row.title,
     description: row.description,
     priority: row.priority,
@@ -126,6 +128,7 @@ export async function createTask(
     related_files: input.relatedFiles ?? [],
     suggested_prompt: input.suggestedPrompt ?? null,
     source_finding_id: input.sourceFindingId ?? null,
+    source_signature: input.sourceSignature ?? null,
     created_by: userId
   };
   const { data, error } = await supabase.from('tasks').insert(row).select('*').single();
@@ -158,6 +161,7 @@ export async function createTaskFromFinding(findingId: string): Promise<Task> {
     project_id: f.project_id,
     workspace_id: f.workspace_id,
     source_finding_id: f.id,
+    source_signature: null,
     title: f.title,
     description: [f.description, f.recommendation ? `\n\n**Recommendation:** ${f.recommendation}` : ''].filter(Boolean).join(''),
     priority,

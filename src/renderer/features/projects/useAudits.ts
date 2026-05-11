@@ -6,7 +6,9 @@ import {
   latestAudit, listAudits, listFindings, publishAuditRun, updateFindingStatus
 } from '@/lib/data/audits';
 import { toast } from '@/lib/toast';
-import type { AuditRun, AuditFinding, GeneratedPrompt } from '@shared/types';
+import { listTasks, createTask } from '@/lib/data/tasks';
+import { runFindingsBridge } from '@/features/tasks/findingsBridge';
+import type { AuditRun, AuditFinding, GeneratedPrompt, TaskInput } from '@shared/types';
 
 const auditsKey = (projectId: string) => ['audits', projectId] as const;
 const latestKey = (projectId: string) => ['audits', projectId, 'latest'] as const;
@@ -77,6 +79,27 @@ export function useStartAudit() {
       qc.invalidateQueries({ queryKey: promptsKey(project.id) });
       qc.invalidateQueries({ queryKey: inFlightKey(project.id) });
       qc.invalidateQueries({ queryKey: ['projects'] });
+      try {
+        const workspaceId = project.workspaceId ?? '';
+        const bridgeResult = await runFindingsBridge(
+          {
+            listTasks: (q: { projectId: string }) => listTasks(q),
+            createTask: (input: TaskInput) => createTask(input, workspaceId)
+          },
+          project.id,
+          run.findings ?? []
+        );
+        if (bridgeResult.created > 0) {
+          const noun = bridgeResult.created === 1 ? 'task' : 'tasks';
+          const desc = bridgeResult.failed > 0
+            ? `${bridgeResult.failed} create call(s) failed — see console.`
+            : undefined;
+          toast.success(`Audit created ${bridgeResult.created} ${noun}`, desc);
+          qc.invalidateQueries({ queryKey: ['tasks'] });
+        }
+      } catch (e) {
+        console.warn('[findings-bridge] failed', e);
+      }
     },
     onError: (e) => {
       if (e instanceof AuditInFlightError) {
