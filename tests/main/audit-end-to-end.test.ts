@@ -1,8 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import pino from 'pino';
+
+// Audit loader (src/main/audit/rule-pack/loader.ts) imports electron.app to compute
+// the bundled rule-pack path. Outside the Electron runtime `app` is undefined, so we
+// stub it here. The test does not place a rule pack in workdir, so the loader will
+// fall through to bundledPath() and find no file — audit proceeds without rule-pack findings.
+vi.mock('electron', () => ({
+  app: {
+    isPackaged: false,
+    getAppPath: () => process.cwd()
+  }
+}));
 import { openDb } from '@main/db/client';
 import { runMigrations } from '@main/db/migrate';
 import { ProjectsRepo } from '@main/projects/repo';
@@ -68,7 +79,7 @@ describe('runAudit end-to-end', () => {
     await runScan({ scansRepo, projectsService, logger }, { projectId: project.id, emitter: null });
 
     const audit = await runAudit(
-      { auditsRepo, scansRepo, projectsService, registry, logger },
+      { auditsRepo, scansRepo, projectsService, registry, logger, appDataRoot: workdir },
       { projectId: project.id }
     );
 
@@ -102,7 +113,7 @@ describe('runAudit end-to-end', () => {
     await runScan({ scansRepo, projectsService, logger }, { projectId: project.id, emitter: null });
 
     const audit = await runAudit(
-      { auditsRepo, scansRepo, projectsService, registry, logger },
+      { auditsRepo, scansRepo, projectsService, registry, logger, appDataRoot: workdir },
       { projectId: project.id }
     );
 

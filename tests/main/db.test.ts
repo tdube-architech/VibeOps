@@ -45,14 +45,14 @@ describe('openDb + migrations', () => {
     h.close();
   });
 
-  it('rejects duplicate localPath', () => {
+  it('allows duplicate localPath (UNIQUE dropped in 0007 for local+cloud-stub pairing)', () => {
     const h = openDb(dbFile);
     runMigrations(h, path.resolve(process.cwd(), 'drizzle'));
     const row = { id: 'p1', name: 'A', slug: 'a', localPath: 'C:\\\\tmp\\\\dup' };
     h.db.insert(projects).values(row).run();
-    expect(() =>
-      h.db.insert(projects).values({ ...row, id: 'p2' }).run()
-    ).toThrow(/UNIQUE/i);
+    h.db.insert(projects).values({ ...row, id: 'p2' }).run();
+    const rows = h.db.select().from(projects).where(eq(projects.localPath, 'C:\\\\tmp\\\\dup')).all();
+    expect(rows).toHaveLength(2);
     h.close();
   });
 });

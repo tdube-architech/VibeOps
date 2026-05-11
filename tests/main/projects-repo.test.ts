@@ -94,10 +94,9 @@ describe('ProjectsRepo', () => {
     expect(repo.byId('1')).toBeNull();
   });
 
-  it('insert throws on duplicate localPath', () => {
+  it('allows duplicate localPath (UNIQUE dropped in 0007 for local+cloud-stub pairing)', () => {
     repo.insert({ id: '1', name: 'A', slug: 'a', localPath: 'C:/dup' });
-    expect(() =>
-      repo.insert({ id: '2', name: 'B', slug: 'b', localPath: 'C:/dup' })
-    ).toThrow(/UNIQUE/i);
+    repo.insert({ id: '2', name: 'B', slug: 'b', localPath: 'C:/dup' });
+    expect(repo.byPath('C:/dup')).toBeDefined();
   });
 });
