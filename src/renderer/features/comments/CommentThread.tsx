@@ -9,23 +9,13 @@ import { getSupabase } from '@/lib/supabase';
 import {
   createComment, deleteComment, listComments, type CommentTarget
 } from '@/lib/data/comments';
+import { relativeTime } from '@/lib/relative-time';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Props {
   target: CommentTarget;
   targetId: string;
-}
-
-function relativeTime(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return 'just now';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
 }
 
 function initials(email: string): string {
@@ -95,7 +85,7 @@ export function CommentThread({ target, targetId }: Props) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 text-xs">
                 <span className="font-medium">{c.authorDisplayName ?? c.authorEmail.split('@')[0]}</span>
-                <span className="text-muted-foreground">{relativeTime(c.createdAt)}</span>
+                <span className="text-muted-foreground" title={c.createdAt}>{relativeTime(c.createdAt)}</span>
                 {c.authorUserId === state?.user?.id && (
                   <button
                     onClick={() => remove.mutate(c.id)}
