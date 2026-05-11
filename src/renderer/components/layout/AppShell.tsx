@@ -18,6 +18,7 @@ import type { ScanProgressEvent } from '@shared/scan-events';
 
 const STAGE_LABEL: Record<PipelineStage, string> = {
   queued: 'Auto-pipeline queued',
+  'git-refresh': 'Remote refresh',
   scanning: 'Scanning project',
   'memory-generating': 'Generating memory.md',
   'memory-writing': 'Writing memory.md',
