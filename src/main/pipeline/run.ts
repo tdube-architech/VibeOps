@@ -12,6 +12,7 @@ import type { ProviderRegistry } from '@main/ai/registry';
 
 export type PipelineStage =
   | 'queued'
+  | 'git-refresh'
   | 'scanning'
   | 'memory-generating'
   | 'memory-writing'
@@ -24,6 +25,7 @@ export interface PipelineEvent {
   stage: PipelineStage;
   message?: string;
   errorMessage?: string;
+  gitRefresh?: import('@shared/pipeline-events').GitRefreshPayload;
 }
 
 export interface PipelineDeps {
